@@ -1,0 +1,18 @@
+#eclipse
+.classpath
+.settings
+.project
+
+#java stuff
+*.class
+*.jar
+
+#build
+/target
+
+#misc
+*.log
+/bin/
+/test-bin/
+
+
