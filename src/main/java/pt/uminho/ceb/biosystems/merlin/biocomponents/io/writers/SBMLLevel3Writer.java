@@ -187,9 +187,6 @@ public class SBMLLevel3Writer {
 		for(String reaction : drains){
 			Map<String, StoichiometryValueCI> reactants = container.getReaction(reaction).getReactants();
 			Map<String, StoichiometryValueCI> products = container.getReaction(reaction).getProducts();
-			
-			System.out.println("reactants---->"+reactants.keySet());
-			System.out.println("products---->"+products.keySet());
 
 			if(reactants.size() > 0){
 				generalStandard(reactants, metabolites, reaction, true);
