@@ -160,10 +160,10 @@ public class ContainerBuilder implements IContainerBuilder {
 		try {
 
 			stmt = connection.createStatement();
-
+			
 			Map<String, ArrayList<String>> result = ModelAPI.getReactions(stmt, conditions);
 			ArrayList<String> list;
-
+			
 			for(String reactionID: result.keySet()) {
 
 				list = result.get(reactionID);
@@ -318,7 +318,7 @@ public class ContainerBuilder implements IContainerBuilder {
 			for(int i=0; i<result2.size(); i++) {
 
 				list2 = result2.get(i);			
-
+				
 				if(this.reactions.containsKey(list2[1])) {
 
 					if(!list2[4].contains("m") && !list2[4].contains("n")) {
@@ -369,7 +369,7 @@ public class ContainerBuilder implements IContainerBuilder {
 
 				CompartmentContainer compartmentContainer = new CompartmentContainer(idCompartment, list.get(0), list.get(1));
 				this.compartments.put(idCompartment, compartmentContainer);
-
+				
 				if((list.get(0).equalsIgnoreCase("extracellular") && isCompartmentalized) || (list.get(0).equalsIgnoreCase("outside") && !isCompartmentalized))
 					this.externalCompartmentID=this.getCompartmentID(idCompartment);
 			}

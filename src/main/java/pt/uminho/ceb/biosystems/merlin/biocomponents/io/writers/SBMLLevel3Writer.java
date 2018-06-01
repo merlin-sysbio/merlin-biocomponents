@@ -84,6 +84,8 @@ public class SBMLLevel3Writer {
 	private String modelID;
 	private String pubmedID;
 	private boolean writeObjectives;
+	private SBMLDocument sbmlDocument;
+
 
 	private SBMLLevelVersion levelAndVersion = SBMLLevelVersion.L3V2;
 	private ArrayList<String> ignoredNamespaces = new ArrayList<String>();
@@ -188,9 +190,6 @@ public class SBMLLevel3Writer {
 			Map<String, StoichiometryValueCI> reactants = container.getReaction(reaction).getReactants();
 			Map<String, StoichiometryValueCI> products = container.getReaction(reaction).getProducts();
 			
-			System.out.println("reactants---->"+reactants.keySet());
-			System.out.println("products---->"+products.keySet());
-
 			if(reactants.size() > 0){
 				generalStandard(reactants, metabolites, reaction, true);
 			}
@@ -295,6 +294,8 @@ public class SBMLLevel3Writer {
 
 		document.setModel(model);
 		writeNotes(document, model);
+		
+		this.sbmlDocument=document;
 
 		System.out.println("SBML VALIDATION ERRORS/WARNINGS: "+document.checkConsistency());
 		if(document.checkConsistency()>0){
@@ -567,11 +568,11 @@ public class SBMLLevel3Writer {
 
 		ListOf<Species> smbl3species = new ListOf<Species>(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 		//		Set<String> metabolitesInDrains = container.getMetaboliteToDrain().keySet();
-
+		
 		for(CompartmentCI compCI : container.getCompartments().values()){
 
 			for(String s : compCI.getMetabolitesInCompartmentID()){		
-
+				
 				MetaboliteCI metabolite = container.getMetabolite(s);
 
 				Species species = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
@@ -1432,6 +1433,14 @@ public class SBMLLevel3Writer {
 		this.ignoreCellDesignerAnnotations = ignoreCellDesignerAnnotations;
 		if(ignoreCellDesignerAnnotations)
 			ignoredNamespaces.add(CELLDESIGNER_NAMESPACE_PREFIX);
+	}
+	
+	/**
+	 * @return
+	 */
+	public SBMLDocument getDocument() {
+		
+		return this.sbmlDocument;
 	}
 
 }
