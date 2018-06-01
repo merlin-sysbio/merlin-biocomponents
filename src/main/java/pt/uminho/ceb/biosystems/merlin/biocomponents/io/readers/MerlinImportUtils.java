@@ -404,7 +404,7 @@ public class MerlinImportUtils {
 					stoichiometryValue[0] = Double.toString(-reactants.get(reactantID).getStoichiometryValue());
 					stoichiometryValue[1] = "";
 					stoichiometryValue[2] = this.metaboliteCompartments.get(reactantID);
-					g
+					
 					//verify if compartments of metabolites in reaction matches
 					String compID = reactantID.split("_")[2];
 					if(compID!=null && !compID.isEmpty() && !compID.equals("b")){
