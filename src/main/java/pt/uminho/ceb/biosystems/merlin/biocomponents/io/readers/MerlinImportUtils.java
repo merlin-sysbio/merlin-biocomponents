@@ -1,5 +1,7 @@
 package pt.uminho.ceb.biosystems.merlin.biocomponents.io.readers;
 
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +13,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.sound.midi.Synthesizer;
 
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.ModelSourcesEnumerator.ModelSources;
+import pt.uminho.ceb.biosystems.merlin.database.connector.databaseAPI.ModelAPI;
+import pt.uminho.ceb.biosystems.merlin.database.connector.datatypes.Connection;
+import pt.uminho.ceb.biosystems.merlin.utilities.RulesParser;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedCompoundsDB;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedPathwaysDB;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedReactionsDB;
@@ -27,6 +32,9 @@ import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.Metabolit
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.ReactionCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.ReactionTypeEnum;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.StoichiometryValueCI;
+import pt.uminho.ceb.biosystems.mew.utilities.grammar.syntaxtree.AbstractSyntaxTreeNode;
+import pt.uminho.ceb.biosystems.mew.utilities.math.language.mathboolean.DataTypeEnum;
+import pt.uminho.ceb.biosystems.mew.utilities.math.language.mathboolean.IValue;
 
 
 public class MerlinImportUtils {
@@ -45,11 +53,12 @@ public class MerlinImportUtils {
 	private List<String> transportReactions;
 	private List<String> drains;
 	private ModelSources modelSource;
+	private Map<String,Integer> genesIds;
 
 
 
 
-	public MerlinImportUtils(Container container, ModelSources source){
+	public MerlinImportUtils(Container container, ModelSources source, Statement statement) throws SQLException{
 
 		this.cont = container;
 		this.modelSource = source;
@@ -62,6 +71,9 @@ public class MerlinImportUtils {
 		this.reactionsData = new ModelSeedReactionsDB();
 		this.keggPathwaysData = new ModelSeedPathwaysDB();
 		this.metaboliteCompartments = new HashMap<>();
+		
+		if(statement!=null)
+			this.genesIds = ModelAPI.getGeneIds(statement);
 		
 		this.resultPathwaysHierarchy = new ConcurrentLinkedQueue<>();
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
@@ -381,13 +393,14 @@ public class MerlinImportUtils {
 				reactionContainer.setLocalisation(cont.getCompartment(reaction.identifyCompartments().toArray()[0].toString()).getName().split("_")[0]);
 			
 			//GENES RULES
-//			if(reaction.getGeneRuleString()!=null && !reaction.getGeneRuleString().isEmpty()){
-//				String geneRule = reaction.getGeneRuleString().trim();
-//				if(geneRule.startsWith("("))
-//					reactionContainer.setGeneRule(geneRule.substring(1,geneRule.length()-1));
-//				else
-//					reactionContainer.setGeneRule(geneRule);
-//			}
+			if(reaction.getGeneRule()!=null && reaction.getGeneRule().size()!=0){
+				
+				AbstractSyntaxTreeNode<DataTypeEnum, IValue> treeRoot = reaction.getGeneRule().getRootNode();
+				List<String> geneCombinations = RulesParser.getGeneRuleCombinations(treeRoot);
+				
+				String geneRule = RulesParser.getGeneRuleString(geneCombinations, this.genesIds);
+				reactionContainer.setGeneRule(geneRule);
+			}
 			
 			//ENZYME NAME
 			String name = reaction.getName();
