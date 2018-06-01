@@ -132,7 +132,7 @@ public class MerlinImportUtils {
 		Map<String, MetaboliteCI> metabolites = cont.getMetabolites();
 
 		for(String metID : metabolites.keySet()){
-
+			
 			if(!metID.endsWith("_b")){
 
 				MetaboliteCI metabolite = metabolites.get(metID);
@@ -207,6 +207,14 @@ public class MerlinImportUtils {
 				this.resultMetabolites.add(metContainer);
 			
 			}
+			
+			Set<String> reactions = cont.getMetabolite(metID).getReactionsId();
+			List<String> reactionsList = new ArrayList<>(reactions);
+			
+			if(metID.endsWith("_b"))
+				for(String drainID : reactionsList)
+					if(!drains.contains(drainID))
+						drains.add(drainID);
 		}
 	}
 
