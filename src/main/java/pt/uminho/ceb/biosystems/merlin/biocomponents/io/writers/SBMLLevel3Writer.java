@@ -767,38 +767,42 @@ public class SBMLLevel3Writer {
 	 * @throws Exception 
 	 */
 	public void loadDrains(Model model) throws Exception{
-		String extcomp = container.getExternalCompartment().getId();
 
-		//PRODUCTS
-		for(MetaboliteCI newmet : new_metabolites_names_p.values()){
-			Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
-			sbmlSpecies.setId(newmet.getId());
-			sbmlSpecies.setName(newmet.getName());
-			sbmlSpecies.setCompartment(extcomp);
-			sbmlSpecies.setBoundaryCondition(true);
-			sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
-			sbmlSpecies.setConstant(METABOLITE_CONSTANT);
+		if(container.getExternalCompartment() != null){
 
-			sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
+			String extcomp = container.getExternalCompartment().getId();
 
-			if(model.getSpecies(newmet.getId())==null)
-				model.addSpecies(sbmlSpecies);
-		}
+			//PRODUCTS
+			for(MetaboliteCI newmet : new_metabolites_names_p.values()){
+				Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
+				sbmlSpecies.setId(newmet.getId());
+				sbmlSpecies.setName(newmet.getName());
+				sbmlSpecies.setCompartment(extcomp);
+				sbmlSpecies.setBoundaryCondition(true);
+				sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
+				sbmlSpecies.setConstant(METABOLITE_CONSTANT);
 
-		//REACTANTS
-		for(MetaboliteCI newmet : new_metabolites_names_r.values()){
-			Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
-			sbmlSpecies.setId(newmet.getId());
-			sbmlSpecies.setName(newmet.getName());
-			sbmlSpecies.setCompartment(extcomp);
-			sbmlSpecies.setBoundaryCondition(true);
-			sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
-			sbmlSpecies.setConstant(METABOLITE_CONSTANT);
+				sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
 
-			sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
+				if(model.getSpecies(newmet.getId())==null)
+					model.addSpecies(sbmlSpecies);
+			}
 
-			if(model.getSpecies(newmet.getId())==null)
-				model.addSpecies(sbmlSpecies);
+			//REACTANTS
+			for(MetaboliteCI newmet : new_metabolites_names_r.values()){
+				Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
+				sbmlSpecies.setId(newmet.getId());
+				sbmlSpecies.setName(newmet.getName());
+				sbmlSpecies.setCompartment(extcomp);
+				sbmlSpecies.setBoundaryCondition(true);
+				sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
+				sbmlSpecies.setConstant(METABOLITE_CONSTANT);
+
+				sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
+
+				if(model.getSpecies(newmet.getId())==null)
+					model.addSpecies(sbmlSpecies);
+			}
 		}
 	}
 

@@ -1,7 +1,6 @@
 package pt.uminho.ceb.biosystems.merlin.biocomponents.io.readers;
 
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,11 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.sound.midi.Synthesizer;
-
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.ModelSourcesEnumerator.ModelSources;
-import pt.uminho.ceb.biosystems.merlin.database.connector.databaseAPI.ModelAPI;
-import pt.uminho.ceb.biosystems.merlin.database.connector.datatypes.Connection;
 import pt.uminho.ceb.biosystems.merlin.utilities.RulesParser;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedCompoundsDB;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedPathwaysDB;
@@ -58,7 +53,7 @@ public class MerlinImportUtils {
 
 
 
-	public MerlinImportUtils(Container container, ModelSources source, Statement statement) throws SQLException{
+	public MerlinImportUtils(Container container, ModelSources source) throws SQLException{
 
 		this.cont = container;
 		this.modelSource = source;
@@ -72,8 +67,8 @@ public class MerlinImportUtils {
 		this.keggPathwaysData = new ModelSeedPathwaysDB();
 		this.metaboliteCompartments = new HashMap<>();
 		
-		if(statement!=null)
-			this.genesIds = ModelAPI.getGeneIds(statement);
+//		if(statement!=null)
+//			this.genesIds = ModelAPI.getGeneIds(statement);
 		
 		this.resultPathwaysHierarchy = new ConcurrentLinkedQueue<>();
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
