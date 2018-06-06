@@ -53,7 +53,7 @@ public class MerlinImportUtils {
 	private List<String> transportReactions;
 	private List<String> drains;
 	private ModelSources modelSource;
-	private Map<String,Integer> genesIds;
+//	private Map<String,Integer> genesIds;
 
 
 
@@ -72,8 +72,8 @@ public class MerlinImportUtils {
 		this.keggPathwaysData = new ModelSeedPathwaysDB();
 		this.metaboliteCompartments = new HashMap<>();
 		
-		if(statement!=null)
-			this.genesIds = ModelAPI.getGeneIds(statement);
+//		if(statement!=null)
+//			this.genesIds = ModelAPI.getGeneIds(statement);
 		
 		this.resultPathwaysHierarchy = new ConcurrentLinkedQueue<>();
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
@@ -95,7 +95,7 @@ public class MerlinImportUtils {
 	private void readGenes(){
 
 		//		GENE CONTAINER
-		//		private String entry;
+		//		private String entry;	X
 		//		private String name;	X
 		//		private	List<String> dblinks;
 		//		private List<String> orthologues;
@@ -108,10 +108,13 @@ public class MerlinImportUtils {
 
 		if(!genes.isEmpty()){
 
-			for(String geneID : genes.keySet()){
+			for(GeneCI gene : genes.values()){
 
-				GeneCI gene = genes.get(geneID);
-				GeneContainer geneContainer = new GeneContainer(gene.getGeneName());
+				String geneID = gene.getGeneId();
+				 
+				GeneContainer geneContainer = new GeneContainer(geneID);
+				if(gene.getGeneName()!=null)
+					geneContainer.setName(gene.getGeneName());
 
 				if(geneContainer.getEntryID() != null)
 					this.resultGenes.add(geneContainer);
@@ -398,7 +401,8 @@ public class MerlinImportUtils {
 				AbstractSyntaxTreeNode<DataTypeEnum, IValue> treeRoot = reaction.getGeneRule().getRootNode();
 				List<String> geneCombinations = RulesParser.getGeneRuleCombinations(treeRoot);
 				
-				String geneRule = RulesParser.getGeneRuleString(geneCombinations, this.genesIds);
+//				String geneRule = RulesParser.getGeneRuleString(geneCombinations, this.genesIds);
+				String geneRule = RulesParser.getOR_geneRulesList2String(geneCombinations);
 				reactionContainer.setGeneRule(geneRule);
 			}
 			

@@ -73,7 +73,7 @@ public class SBMLLevel3Writer {
 	private String path;
 	private Container container;
 	private boolean palssonSpecific = false;
-//	private boolean writeMath = false;
+	//	private boolean writeMath = false;
 	private boolean ignoreNotesField = false;
 	private boolean ignoreCellDesignerAnnotations = false;
 	private boolean writeUnits = true;
@@ -146,7 +146,7 @@ public class SBMLLevel3Writer {
 
 	public SBMLLevel3Writer(String path,Container container, String taxonomyID, boolean writeObjectives, String modelID, boolean palssonSpecific,boolean writeMath,SBMLLevelVersion lv, boolean writeUnits){
 		this(path,container,taxonomyID,writeObjectives,modelID,palssonSpecific, writeUnits);
-//		this.writeMath = writeMath;
+		//		this.writeMath = writeMath;
 		this.levelAndVersion = lv;
 	}
 
@@ -247,7 +247,7 @@ public class SBMLLevel3Writer {
 
 		/**write model annotations*/
 		writeModelAnnotations(model);
-		
+
 		/**write list of objectives*/
 		if(writeObjectives)
 			writeListOfObjectives(model);
@@ -288,7 +288,7 @@ public class SBMLLevel3Writer {
 		//		spaces.add("http://www.sbml.org/sbml/level2");
 		//		spaces.add("http://www.w3.org/1998/Math/MathML");
 		////		document.addDeclaredNamespace(prefix, namespace);
-//		document.addNamespace("html", "xmlns", "http://www.w3.org/1999/xhtml");
+		//		document.addNamespace("html", "xmlns", "http://www.w3.org/1999/xhtml");
 
 		document.setModel(model);
 		writeNotes(document, model);
@@ -304,7 +304,7 @@ public class SBMLLevel3Writer {
 		String merlinVersion = Utilities.getMerlinVersion();
 		if(merlinVersion!=null)
 			writer.setProgramVersion(merlinVersion);
-		
+
 		OutputStream out = new FileOutputStream(outputFile);
 		writer.write(document, out);
 	}
@@ -437,26 +437,26 @@ public class SBMLLevel3Writer {
 		/** set list of unit definitions */
 		model.setListOfUnitDefinitions(list_unitDef);
 	}
-	
+
 	/**
 	 * This method writes the list of objectives (in this case the biomass)
 	 * @param model The model
 	 */
 	public void writeListOfObjectives(Model model){
-		
+
 		FBCModelPlugin sbml3Objectives = (FBCModelPlugin) model.getPlugin("fbc");
-		
+
 		ReactionCI biomassReaction = container.getReaction(container.getBiomassId());
 		String[] biomassName = biomassReaction.getName().split("__");
 		String reactionID = standardizerReactId(biomassName[biomassName.length-1],biomassReaction.getType());
-		
+
 		Objective biomassObjective = new Objective("biomass");
 		biomassObjective.setType(Type.MAXIMIZE);
-		
+
 		FluxObjective biomass = new FluxObjective();
 		biomass.setCoefficient(1.0);
 		biomass.setReaction(reactionID);
-		
+
 		biomassObjective.addFluxObjective(biomass);
 		sbml3Objectives.setActiveObjective(biomassObjective);
 
@@ -465,11 +465,11 @@ public class SBMLLevel3Writer {
 		}catch(Exception e){
 			exceptionsMap.put(biomass.getId(), e);
 		}
-		
+
 		if(!exceptionsMap.isEmpty())
 			throw new JSBMLWriterException(exceptionsMap);
 	}
-	
+
 	/**
 	 * This method loads the compartments
 	 * @param model The model
@@ -658,7 +658,7 @@ public class SBMLLevel3Writer {
 			//			if(!fbcModel.getGeneProduct(geneProductID)){
 
 			GeneProduct sbmlGeneProduct = new GeneProduct(levelAndVersion.getLevel(), levelAndVersion.getVersion());
-			
+
 			sbmlGeneProduct.setId(geneProductID);
 			sbmlGeneProduct.setLabel(geneProductID.replace("G_", ""));
 			String[] idSplit = gene.getGeneId().split("_");
@@ -764,38 +764,42 @@ public class SBMLLevel3Writer {
 	 * @throws Exception 
 	 */
 	public void loadDrains(Model model) throws Exception{
-		String extcomp = container.getExternalCompartment().getId();
 
-		//PRODUCTS
-		for(MetaboliteCI newmet : new_metabolites_names_p.values()){
-			Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
-			sbmlSpecies.setId(newmet.getId());
-			sbmlSpecies.setName(newmet.getName());
-			sbmlSpecies.setCompartment(extcomp);
-			sbmlSpecies.setBoundaryCondition(true);
-			sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
-			sbmlSpecies.setConstant(METABOLITE_CONSTANT);
+		if(container.getExternalCompartment() != null){
 
-			sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
+			String extcomp = container.getExternalCompartment().getId();
 
-			if(model.getSpecies(newmet.getId())==null)
-				model.addSpecies(sbmlSpecies);
-		}
+			//PRODUCTS
+			for(MetaboliteCI newmet : new_metabolites_names_p.values()){
+				Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
+				sbmlSpecies.setId(newmet.getId());
+				sbmlSpecies.setName(newmet.getName());
+				sbmlSpecies.setCompartment(extcomp);
+				sbmlSpecies.setBoundaryCondition(true);
+				sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
+				sbmlSpecies.setConstant(METABOLITE_CONSTANT);
 
-		//REACTANTS
-		for(MetaboliteCI newmet : new_metabolites_names_r.values()){
-			Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
-			sbmlSpecies.setId(newmet.getId());
-			sbmlSpecies.setName(newmet.getName());
-			sbmlSpecies.setCompartment(extcomp);
-			sbmlSpecies.setBoundaryCondition(true);
-			sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
-			sbmlSpecies.setConstant(METABOLITE_CONSTANT);
+				sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
 
-			sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
+				if(model.getSpecies(newmet.getId())==null)
+					model.addSpecies(sbmlSpecies);
+			}
 
-			if(model.getSpecies(newmet.getId())==null)
-				model.addSpecies(sbmlSpecies);
+			//REACTANTS
+			for(MetaboliteCI newmet : new_metabolites_names_r.values()){
+				Species sbmlSpecies = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
+				sbmlSpecies.setId(newmet.getId());
+				sbmlSpecies.setName(newmet.getName());
+				sbmlSpecies.setCompartment(extcomp);
+				sbmlSpecies.setBoundaryCondition(true);
+				sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
+				sbmlSpecies.setConstant(METABOLITE_CONSTANT);
+
+				sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
+
+				if(model.getSpecies(newmet.getId())==null)
+					model.addSpecies(sbmlSpecies);
+			}
 		}
 	}
 
@@ -1233,7 +1237,7 @@ public class SBMLLevel3Writer {
 			compound.setSpecies(new_metabolites_names.get(z).getId());
 			compound.setStoichiometry(1.0);
 			//			boolean constant = model.getSpecies(new_metabolites_names.get(z).getId()).isConstant();
-//			boolean constant = true;
+			//			boolean constant = true;
 			compound.setConstant(true);
 			if(isProduct) sbmlreaction.addProduct(compound);
 			else sbmlreaction.addReactant(compound);
