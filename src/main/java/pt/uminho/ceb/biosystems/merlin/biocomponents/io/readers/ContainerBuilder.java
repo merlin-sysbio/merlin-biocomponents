@@ -254,6 +254,8 @@ public class ContainerBuilder implements IContainerBuilder {
 					ReactionContainer reactionContainer = this.reactions.get(list2[0]);
 
 					String locus= list2[2], geneName = null;
+					
+					System.out.println(list2[2]);
 
 					if(list2[1]!=null)
 						geneName = list2[1].replace(" ","").replace(",","_").replace("/","_").replace("\\","_").trim();
@@ -294,6 +296,10 @@ public class ContainerBuilder implements IContainerBuilder {
 		}
 	}
 
+	/**
+	 * @param locus
+	 * @param geneName
+	 */
 	private void addGeneCI(String locus, String geneName) {
 
 		if(this.genes==null)
@@ -432,7 +438,11 @@ public class ContainerBuilder implements IContainerBuilder {
 		for(String reaction_id : this.reactions.keySet()) {
 
 			ReactionContainer reaction = this.reactions.get(reaction_id);
-			String name = reaction.getName()+"__("+reaction.getEquation().replace(" ", "")+")"+"__"+reaction_id;
+			
+			Integer id = Integer.parseInt(reaction_id);
+			String newID = String.format("%06d", id);
+			
+			String name = reaction.getName()+"__("+reaction.getEquation().replace(" ", "")+")"+"__"+newID;
 
 			String rid = ContainerBuilder.buildID("R_", reactionsCounter)/*+"_"+reaction.getName().replace(" ", "_").replace("\t", "_").replace("-", "_")*/;
 			//			String rid = reaction_id;

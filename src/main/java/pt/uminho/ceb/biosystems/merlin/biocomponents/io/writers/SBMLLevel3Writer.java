@@ -103,6 +103,7 @@ public class SBMLLevel3Writer {
 	private static final org.sbml.jsbml.ext.groups.Group.Kind GROUPS_KIND = Group.Kind.partonomy;
 	private static final String MERLIN_NAME = "merlin - www.merlin-sysbio.org";
 	//	private static final String EQUATION_PREFIX = "EQUATION: ";
+	private Integer genesNumber = 1; 
 
 
 	public static String CELLDESIGNER_NAMESPACE_PREFIX = "celldesigner";
@@ -579,9 +580,10 @@ public class SBMLLevel3Writer {
 				String sbmlName;// = standardizeMetId(species.getId());
 				if(needsToBeStandardized) sbmlName = standardizeMetId(metabolite.getId());
 				else sbmlName = metabolite.getId();
-
+				
 				species.setId(sbmlName);
-				species.setName(metabolite.getName().split("_")[1]);
+				if(metabolite.getName().split("_").length>1)
+					species.setName(metabolite.getName().split("_")[1]);
 				species.setCompartment(compCI.getId());
 
 				//				if(metabolitesInDrains.contains(sbmlName))
@@ -655,8 +657,13 @@ public class SBMLLevel3Writer {
 		FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin("fbc");
 
 		for(GeneCI gene : container.getGenes().values()){
+			
+			System.out.println("gene.getGeneId()---->"+gene.getGeneId());
+			System.out.println("gene Name--->"+gene.getGeneName());
 
 			String geneProductID = standardGeneID(gene.getGeneId());
+			
+			System.out.println("geneProductID--->"+geneProductID);
 
 			//			if(!fbcModel.getGeneProduct(geneProductID)){
 
@@ -669,29 +676,29 @@ public class SBMLLevel3Writer {
 
 			if(geneName!= null && !geneName.equals(""))
 				sbmlGeneProduct.setName(gene.getGeneName());
-			else {
-				if (idSplit.length == 2 && !idSplit[1].startsWith("\\d"))
-					sbmlGeneProduct.setName(idSplit[0]);
-
-				else if(idSplit.length > 2){
-					Integer startLocus = -1;
-					Integer i = idSplit.length-1;
-
-					while(i>=0 && startLocus==-1){
-						if(!idSplit[i].startsWith("\\d"))
-							startLocus = i;
-						i--;	
-					}
-					if(startLocus > 0){
-						geneName = "";
-
-						for(int j=0; j<startLocus; j++)
-							geneName.concat(idSplit[j]);
-
-						sbmlGeneProduct.setName(geneName);
-					}
-				}
-			}
+//			else {
+//				if (idSplit.length == 2 && !idSplit[1].startsWith("\\d"))
+//					sbmlGeneProduct.setName(idSplit[0]);
+//
+//				else if(idSplit.length > 2){
+//					Integer startLocus = -1;
+//					Integer i = idSplit.length-1;
+//
+//					while(i>=0 && startLocus==-1){
+//						if(!idSplit[i].startsWith("\\d"))
+//							startLocus = i;
+//						i--;	
+//					}
+//					if(startLocus > 0){
+//						geneName = "";
+//
+//						for(int j=0; j<startLocus; j++)
+//							geneName.concat(idSplit[j]);
+//
+//						sbmlGeneProduct.setName(geneName);
+//					}
+//				}
+//			}
 
 			sbmlGeneProduct.setMetaId(sbmlGeneProduct.getId());
 
@@ -700,6 +707,7 @@ public class SBMLLevel3Writer {
 
 			try{
 				fbcModel.addGeneProduct(sbmlGeneProduct);
+				genesNumber++;
 				//				sbml3GeneProducts.add(sbmlGeneProdutct);
 			}catch(Exception e){
 				exceptionsMap.put(gene.getGeneId(), e);
@@ -1012,24 +1020,33 @@ public class SBMLLevel3Writer {
 	 * @return
 	 */
 	public String standardGeneID(String oldGeneID) {
-
-		String[] splited = oldGeneID.split("_");
-		String newGeneID = "";
-
-		if(splited.length>2){
-
-			if(splited[splited.length-1].startsWith("\\d"))
-				newGeneID = "G_".concat(splited[splited.length-2]).concat("_").concat(splited[splited.length-1]);
-
-			else
-				newGeneID = "G_".concat(splited[splited.length-1]);
+		
+//		String[] splited = oldGeneID.split("_");
+//		String newGeneID = "";
+//
+//		if(splited.length>2){
+//
+//			if(splited[splited.length-1].startsWith("\\d"))
+//				newGeneID = "G_".concat(splited[splited.length-2]).concat("_").concat(splited[splited.length-1]);
+//
+//			else
+//				newGeneID = "G_".concat(splited[splited.length-1]);
+//		}
+//
+//		else if(splited.length==2 && !splited[1].startsWith("\\d"))
+//			newGeneID = "G_".concat(splited[1]);
+//
+//		else
+//			newGeneID = "G_".concat(oldGeneID);
+		
+		String newGeneID = "G_".concat(oldGeneID);
+		
+		if(oldGeneID.split("\\.").length==1){
+			newGeneID = oldGeneID.substring(0, oldGeneID.indexOf("."));
 		}
-
-		else if(splited.length==2 && !splited[1].startsWith("\\d"))
-			newGeneID = "G_".concat(splited[1]);
-
-		else
-			newGeneID = "G_".concat(oldGeneID);
+		else if(oldGeneID.split("\\.").length>1){
+			newGeneID = "G_".concat(String.format("%05d", genesNumber));
+		}
 
 		return newGeneID;
 	}
@@ -1255,7 +1272,10 @@ public class SBMLLevel3Writer {
 	 */
 	private String standardizerReactId(String reaction,
 			ReactionTypeEnum reactionTypeEnum) {
-
+		
+//		Integer id = Integer.parseInt(reaction);
+//		String newName = String.format("%06d", id);
+		
 		String newName = reaction;
 
 		if(!(reaction.startsWith("r_") || reaction.startsWith("R_")))
