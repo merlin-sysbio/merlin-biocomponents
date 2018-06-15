@@ -658,13 +658,8 @@ public class SBMLLevel3Writer {
 
 		for(GeneCI gene : container.getGenes().values()){
 			
-			System.out.println("gene.getGeneId()---->"+gene.getGeneId());
-			System.out.println("gene Name--->"+gene.getGeneName());
-
 			String geneProductID = standardGeneID(gene.getGeneId());
 			
-			System.out.println("geneProductID--->"+geneProductID);
-
 			//			if(!fbcModel.getGeneProduct(geneProductID)){
 
 			GeneProduct sbmlGeneProduct = new GeneProduct(levelAndVersion.getLevel(), levelAndVersion.getVersion());
