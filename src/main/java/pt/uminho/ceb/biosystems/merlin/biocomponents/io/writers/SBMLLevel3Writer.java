@@ -1036,10 +1036,10 @@ public class SBMLLevel3Writer {
 		
 		String newGeneID = "G_".concat(oldGeneID);
 		
-		if(oldGeneID.split("\\.").length==1){
+		if(oldGeneID.split("\\.").length==2){
 			newGeneID = oldGeneID.substring(0, oldGeneID.indexOf("."));
 		}
-		else if(oldGeneID.split("\\.").length>1){
+		else if(oldGeneID.split("\\.").length>2){
 			newGeneID = "G_".concat(String.format("%05d", genesNumber));
 		}
 
