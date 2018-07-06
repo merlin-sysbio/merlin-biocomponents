@@ -17,5 +17,16 @@ public class ModelSourcesEnumerator {
 		}
 		
 	}
+	
+	
+	/**
+	 * @author amaromorais
+	 * available programs for models genomes alignment
+	 */
+	public static enum AlignmentMethod{	
+		
+		BLAST,
+		SmithWaterman
+	}
 
 }
