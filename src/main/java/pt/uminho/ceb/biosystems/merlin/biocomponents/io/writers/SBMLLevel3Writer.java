@@ -55,8 +55,8 @@ import org.sbml.jsbml.xml.parsers.MathMLStaxParser;
 
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.SBMLLevelVersion;
 import pt.uminho.ceb.biosystems.merlin.utilities.Utilities;
-import pt.uminho.ceb.biosystems.merlin.utilities.External.ExternalRef;
-import pt.uminho.ceb.biosystems.merlin.utilities.External.ExternalRefSource;
+import pt.uminho.ceb.biosystems.merlin.utilities.external.ExternalRef;
+import pt.uminho.ceb.biosystems.merlin.utilities.external.ExternalRefSource;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.Container;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.CompartmentCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.GeneCI;
@@ -67,6 +67,7 @@ import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.ReactionT
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.StoichiometryValueCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.io.exceptions.JSBMLWriterException;
 import pt.uminho.ceb.biosystems.mew.utilities.datastructures.collection.CollectionUtils;
+import pt.uminho.ceb.biosystems.mew.utilities.java.StringUtils;
 
 public class SBMLLevel3Writer {
 
@@ -101,6 +102,7 @@ public class SBMLLevel3Writer {
 	private static final org.sbml.jsbml.ext.groups.Group.Kind GROUPS_KIND = Group.Kind.partonomy;
 	private static final String MERLIN_NAME = "merlin - www.merlin-sysbio.org";
 	//	private static final String EQUATION_PREFIX = "EQUATION: ";
+	private Integer genesNumber = 1;
 
 
 	public static String CELLDESIGNER_NAMESPACE_PREFIX = "celldesigner";
@@ -666,29 +668,29 @@ public class SBMLLevel3Writer {
 
 			if(geneName!= null && !geneName.equals(""))
 				sbmlGeneProduct.setName(gene.getGeneName());
-			else {
-				if (idSplit.length == 2 && !idSplit[1].startsWith("\\d"))
-					sbmlGeneProduct.setName(idSplit[0]);
-
-				else if(idSplit.length > 2){
-					Integer startLocus = -1;
-					Integer i = idSplit.length-1;
-
-					while(i>=0 && startLocus==-1){
-						if(!idSplit[i].startsWith("\\d"))
-							startLocus = i;
-						i--;	
-					}
-					if(startLocus > 0){
-						geneName = "";
-
-						for(int j=0; j<startLocus; j++)
-							geneName.concat(idSplit[j]);
-
-						sbmlGeneProduct.setName(geneName);
-					}
-				}
-			}
+//			else {
+//				if (idSplit.length == 2 && !idSplit[1].startsWith("\\d"))
+//					sbmlGeneProduct.setName(idSplit[0]);
+//
+//				else if(idSplit.length > 2){
+//					Integer startLocus = -1;
+//					Integer i = idSplit.length-1;
+//
+//					while(i>=0 && startLocus==-1){
+//						if(!idSplit[i].startsWith("\\d"))
+//							startLocus = i;
+//						i--;	
+//					}
+//					if(startLocus > 0){
+//						geneName = "";
+//
+//						for(int j=0; j<startLocus; j++)
+//							geneName.concat(idSplit[j]);
+//
+//						sbmlGeneProduct.setName(geneName);
+//					}
+//				}
+//			}
 
 			sbmlGeneProduct.setMetaId(sbmlGeneProduct.getId());
 
@@ -697,6 +699,7 @@ public class SBMLLevel3Writer {
 
 			try{
 				fbcModel.addGeneProduct(sbmlGeneProduct);
+				genesNumber++;
 				//				sbml3GeneProducts.add(sbmlGeneProdutct);
 			}catch(Exception e){
 				exceptionsMap.put(gene.getGeneId(), e);
@@ -1010,24 +1013,33 @@ public class SBMLLevel3Writer {
 	 */
 	public String standardGeneID(String oldGeneID) {
 
-		String[] splited = oldGeneID.split("_");
-		String newGeneID = "";
+//		String[] splited = oldGeneID.split("_");
+//		String newGeneID = "";
+//
+//		if(splited.length>2){
+//
+//			if(splited[splited.length-1].startsWith("\\d"))
+//				newGeneID = "G_".concat(splited[splited.length-2]).concat("_").concat(splited[splited.length-1]);
+//
+//			else
+//				newGeneID = "G_".concat(splited[splited.length-1]);
+//		}
+//
+//		else if(splited.length==2 && !splited[1].startsWith("\\d"))
+//			newGeneID = "G_".concat(splited[1]);
+//
+//		else
+//			newGeneID = "G_".concat(oldGeneID);
+		
+		String newGeneID = "G_".concat(oldGeneID);
 
-		if(splited.length>2){
-
-			if(splited[splited.length-1].startsWith("\\d"))
-				newGeneID = "G_".concat(splited[splited.length-2]).concat("_").concat(splited[splited.length-1]);
-
-			else
-				newGeneID = "G_".concat(splited[splited.length-1]);
+		if(oldGeneID.split("\\.").length==2){
+			newGeneID = "G_".concat(oldGeneID.substring(0, oldGeneID.indexOf(".")));
 		}
-
-		else if(splited.length==2 && !splited[1].startsWith("\\d"))
-			newGeneID = "G_".concat(splited[1]);
-
-		else
-			newGeneID = "G_".concat(oldGeneID);
-
+		else if(oldGeneID.split("\\.").length>2){
+			newGeneID = "G_".concat(String.format("%05d", genesNumber));
+		}
+		
 		return newGeneID;
 	}
 

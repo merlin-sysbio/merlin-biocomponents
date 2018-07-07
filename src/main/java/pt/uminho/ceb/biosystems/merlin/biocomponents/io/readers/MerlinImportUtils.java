@@ -355,13 +355,7 @@ public class MerlinImportUtils {
 				if(!reactants.isEmpty() && !products.isEmpty()){
 					for(String reactantID : reactants.keySet()){
 
-						String reactant = null;
-
-						if(metabolites.get(reactantID).getName().contains("["))
-							reactant = metabolites.get(reactantID).getName().substring(0, metabolites.get(reactantID).getName().lastIndexOf("["));
-						else
-							reactant = metabolites.get(reactantID).getName();
-
+						String reactant = metabolites.get(reactantID).getName();
 						equation = equation.concat(reactant).concat(" + ");
 					}
 
@@ -370,17 +364,12 @@ public class MerlinImportUtils {
 
 					for(String productID : products.keySet()){
 
-						String product = null;
-
-						if(metabolites.get(productID).getName().contains("["))
-							product = metabolites.get(productID).getName().substring(0, metabolites.get(productID).getName().lastIndexOf("["));
-						else
-							product = metabolites.get(productID).getName();
-
+						String product = metabolites.get(productID).getName();
 						equation = equation.concat(product).concat(" + ");
 					}
 
 					equation = equation.substring(0, equation.lastIndexOf(" + "));
+					equation.replaceAll("[\\[\\(]\\s*\\d*\\s*[\\]\\)]", "").trim();
 					reactionContainer.setEquation(equation);
 				}
 			}
@@ -395,7 +384,7 @@ public class MerlinImportUtils {
 			if(!reaction.identifyCompartments().isEmpty())
 				reactionContainer.setLocalisation(cont.getCompartment(reaction.identifyCompartments().toArray()[0].toString()).getName().split("_")[0]);
 			
-			//GENES RULES
+//			GENES RULES
 			if(reaction.getGeneRule()!=null && reaction.getGeneRule().size()!=0){
 				
 				AbstractSyntaxTreeNode<DataTypeEnum, IValue> treeRoot = reaction.getGeneRule().getRootNode();
@@ -544,6 +533,8 @@ public class MerlinImportUtils {
 		//		private	List<String> genes;
 
 		Map<String, Set<String>> ecNumbers = cont.getECNumbers();
+		
+		System.out.println(ecNumbers);
 
 		for(String ecNumber : ecNumbers.keySet()){
 
