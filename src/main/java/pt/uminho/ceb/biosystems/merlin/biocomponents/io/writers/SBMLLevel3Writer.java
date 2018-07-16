@@ -67,7 +67,6 @@ import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.ReactionT
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.StoichiometryValueCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.io.exceptions.JSBMLWriterException;
 import pt.uminho.ceb.biosystems.mew.utilities.datastructures.collection.CollectionUtils;
-import pt.uminho.ceb.biosystems.mew.utilities.java.StringUtils;
 
 public class SBMLLevel3Writer {
 
@@ -85,6 +84,8 @@ public class SBMLLevel3Writer {
 	private String modelID;
 	private String pubmedID;
 	private boolean writeObjectives;
+	private SBMLDocument sbmlDocument;
+
 
 	private SBMLLevelVersion levelAndVersion = SBMLLevelVersion.L3V2;
 	private ArrayList<String> ignoredNamespaces = new ArrayList<String>();
@@ -102,7 +103,7 @@ public class SBMLLevel3Writer {
 	private static final org.sbml.jsbml.ext.groups.Group.Kind GROUPS_KIND = Group.Kind.partonomy;
 	private static final String MERLIN_NAME = "merlin - www.merlin-sysbio.org";
 	//	private static final String EQUATION_PREFIX = "EQUATION: ";
-	private Integer genesNumber = 1;
+	private Integer genesNumber = 1; 
 
 
 	public static String CELLDESIGNER_NAMESPACE_PREFIX = "celldesigner";
@@ -189,7 +190,6 @@ public class SBMLLevel3Writer {
 		for(String reaction : drains){
 			Map<String, StoichiometryValueCI> reactants = container.getReaction(reaction).getReactants();
 			Map<String, StoichiometryValueCI> products = container.getReaction(reaction).getProducts();
-
 			if(reactants.size() > 0){
 				generalStandard(reactants, metabolites, reaction, true);
 			}
@@ -294,6 +294,8 @@ public class SBMLLevel3Writer {
 
 		document.setModel(model);
 		writeNotes(document, model);
+		
+		this.sbmlDocument=document;
 
 		System.out.println("SBML VALIDATION ERRORS/WARNINGS: "+document.checkConsistency());
 		if(document.checkConsistency()>0){
@@ -566,11 +568,11 @@ public class SBMLLevel3Writer {
 
 		ListOf<Species> smbl3species = new ListOf<Species>(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 		//		Set<String> metabolitesInDrains = container.getMetaboliteToDrain().keySet();
-
+		
 		for(CompartmentCI compCI : container.getCompartments().values()){
 
 			for(String s : compCI.getMetabolitesInCompartmentID()){		
-
+				
 				MetaboliteCI metabolite = container.getMetabolite(s);
 
 				Species species = new Species(levelAndVersion.getLevel(), levelAndVersion.getVersion());
@@ -578,9 +580,10 @@ public class SBMLLevel3Writer {
 				String sbmlName;// = standardizeMetId(species.getId());
 				if(needsToBeStandardized) sbmlName = standardizeMetId(metabolite.getId());
 				else sbmlName = metabolite.getId();
-
+				
 				species.setId(sbmlName);
-				species.setName(metabolite.getName().split("_")[1]);
+				if(metabolite.getName().split("_").length>1)
+					species.setName(metabolite.getName().split("_")[1]);
 				species.setCompartment(compCI.getId());
 
 				//				if(metabolitesInDrains.contains(sbmlName))
@@ -654,16 +657,16 @@ public class SBMLLevel3Writer {
 		FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin("fbc");
 
 		for(GeneCI gene : container.getGenes().values()){
-
+			
 			String geneProductID = standardGeneID(gene.getGeneId());
-
+			
 			//			if(!fbcModel.getGeneProduct(geneProductID)){
 
 			GeneProduct sbmlGeneProduct = new GeneProduct(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 
 			sbmlGeneProduct.setId(geneProductID);
 			sbmlGeneProduct.setLabel(geneProductID.replace("G_", ""));
-			String[] idSplit = gene.getGeneId().split("_");
+//			String[] idSplit = gene.getGeneId().split("_");
 			String geneName = gene.getGeneName();
 
 			if(geneName!= null && !geneName.equals(""))
@@ -1012,7 +1015,7 @@ public class SBMLLevel3Writer {
 	 * @return
 	 */
 	public String standardGeneID(String oldGeneID) {
-
+		
 //		String[] splited = oldGeneID.split("_");
 //		String newGeneID = "";
 //
@@ -1264,7 +1267,10 @@ public class SBMLLevel3Writer {
 	 */
 	private String standardizerReactId(String reaction,
 			ReactionTypeEnum reactionTypeEnum) {
-
+		
+//		Integer id = Integer.parseInt(reaction);
+//		String newName = String.format("%06d", id);
+		
 		String newName = reaction;
 
 		if(!(reaction.startsWith("r_") || reaction.startsWith("R_")))
@@ -1445,6 +1451,14 @@ public class SBMLLevel3Writer {
 		this.ignoreCellDesignerAnnotations = ignoreCellDesignerAnnotations;
 		if(ignoreCellDesignerAnnotations)
 			ignoredNamespaces.add(CELLDESIGNER_NAMESPACE_PREFIX);
+	}
+	
+	/**
+	 * @return
+	 */
+	public SBMLDocument getDocument() {
+		
+		return this.sbmlDocument;
 	}
 
 }
