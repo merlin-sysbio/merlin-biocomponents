@@ -4,7 +4,14 @@ public class ModelSourcesEnumerator {
 	
 	public enum ModelSources{
 		
-		MODEL_SEED("ModelSEED smbl model");
+		MODEL_SEED("ModelSEED"),
+		
+		BIGG("BIGG"){
+			@Override
+			public String toString(){
+				return "BIGG smbl model";
+			}
+		};
 		
 		private String source;
 		
@@ -12,10 +19,14 @@ public class ModelSourcesEnumerator {
 			this.source = modelSource;
 		}
 		
-		public String source(){
+		public String sourceName(){
 			return this.source;
 		}
 		
+		@Override
+		public String toString(){
+			return "ModelSEED smbl model";
+		}
 	}
 	
 	
