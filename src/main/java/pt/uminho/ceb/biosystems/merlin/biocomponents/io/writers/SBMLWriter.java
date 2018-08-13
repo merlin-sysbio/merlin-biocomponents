@@ -65,7 +65,7 @@ public class SBMLWriter {
 	private DatabaseAccess databaseAccess;
 	private String filePath;
 	private String sbmlFileID;
-	
+
 	private List<String> genes;
 	private SBMLDocument sbmlDocument;
 
@@ -95,7 +95,7 @@ public class SBMLWriter {
 		this.filePath = filePath;
 		this.sbmlFileID = sbmlFileID;
 		this.levelAndVersion = levelAndVersion;
-		
+
 		this.genes = new ArrayList<>();
 	}
 
@@ -153,10 +153,10 @@ public class SBMLWriter {
 		org.sbml.jsbml.SBMLWriter sbmlwriter = new org.sbml.jsbml.SBMLWriter();
 		sbmlwriter.setProgramName(MERLIN_NAME);
 		String merlinVersion = Utilities.getMerlinVersion();
-	
+
 		if(merlinVersion!=null)
 			sbmlwriter.setProgramVersion(merlinVersion);
-		
+
 		OutputStream out = new FileOutputStream(filePath);
 		sbmlwriter.write(document, out);
 		try {
@@ -183,11 +183,11 @@ public class SBMLWriter {
 			stmt = connection.createStatement();
 
 			Map<Integer, Pair<String, String>> genesData = ModelAPI.getGenesFromDatabase(stmt);
-			
+
 			Map<String,ArrayList<String>> result = ModelAPI.getReactions(stmt, conditions);
 
 			for(String idReaction : result.keySet()){
-				
+
 				ArrayList<String> reactionData = result.get(idReaction);
 
 				ReactionContainer reactionContainer = null;
@@ -206,16 +206,16 @@ public class SBMLWriter {
 
 					if(reactionData.get(4)!=null)
 						reactionContainer.setNotes(reactionData.get(4));
-					
+
 					if(reactionData.get(7)!=null && !reactionData.get(7).isEmpty()){
 						String geneRules = RulesParser.getGeneRule(reactionData.get(7), genesData);
 						reactionContainer.setGeneRule(geneRules);
 					}
 				}
-				
+
 				reactionContainer = this.reactions.put(idReaction, reactionContainer);
 			}
-			
+
 			ArrayList<String[]> result2 = ModelAPI.getReactionHasEnzymeData3(stmt);
 
 			for(int i=0; i<result2.size(); i++){
@@ -241,7 +241,7 @@ public class SBMLWriter {
 			result2 = ModelAPI.getPathwayHasReactionData(stmt);
 
 			for(int i=0; i<result2.size(); i++) {
-				
+
 				String[] list = result2.get(i);
 
 				if(this.reactions.containsKey(list[0])) {
@@ -263,12 +263,12 @@ public class SBMLWriter {
 			}
 
 			result2 = ModelAPI.getReactionGenes(stmt);
-			
+
 			for(int i=0; i<result2.size(); i++){
 				String[] list = result2.get(i);
 
 				if(this.reactions.containsKey(list[0]) && !list[3].contains(".-")) {
-					
+
 					ReactionContainer reactionContainer = this.reactions.get(list[0]);
 
 					String locus= list[2], geneName = null;
@@ -276,7 +276,7 @@ public class SBMLWriter {
 					if(list[1]!=null)
 						geneName = list[1].replace(" ","").replace(",","_").replace("/","_").replace("\\","_").trim();//replace("-","_").trim();
 
-//					this.addGeneCI(locus, geneName);
+					//					this.addGeneCI(locus, geneName);
 					reactionContainer.addGene(locus, geneName);
 					reactionContainer = this.reactions.put(list[0], reactionContainer);
 
@@ -395,7 +395,7 @@ public class SBMLWriter {
 		int reactionsCounter = 1 ;
 		int metabolitesCounter = 1;
 		int enzymesCounter = 1;
-		
+
 		Map<String,String> enzymesID = new TreeMap<String, String>();
 		Map<String,String> compoundCompartmentID = new TreeMap<String, String>();
 
@@ -419,30 +419,30 @@ public class SBMLWriter {
 
 			if(reaction.getUpperBound()!= null)
 				upper_bound = reaction.getUpperBound();
-			
-			
+
+
 			if(reaction.getGenes()!= null)
 				for(Pair<String,String> gene : reaction.getGenes())			
 					if(!genes.contains(gene.getA()))
-							genes.add(gene.getA());
-			
+						genes.add(gene.getA());
+
 			String geneRule = reaction.getGeneRule();
-			
-//			System.out.println(reaction.getGeneRule());
-			
-//			if(reaction.getGeneRule()!=null && !reaction.getGeneRule().isEmpty()){
-//				List<List<Pair<String,String>>> rule = ModelAPI.parseBooleanRule(reaction.getGeneRule(), stmt);
-//				geneRule = Utilities.parseRuleListToString(rule);
-//			}
+
+			//			System.out.println(reaction.getGeneRule());
+
+			//			if(reaction.getGeneRule()!=null && !reaction.getGeneRule().isEmpty()){
+			//				List<List<Pair<String,String>>> rule = ModelAPI.parseBooleanRule(reaction.getGeneRule(), stmt);
+			//				geneRule = Utilities.parseRuleListToString(rule);
+			//			}
 
 			if(geneRule!= null && !geneRule.isEmpty())
 				reaction.setGeneRule(geneRule);
-			
-			
+
+
 			XMLNode reactionNote = SBMLWriter.getReactionNote(reaction.getGenes(), reaction.getEnzymes(),
 					reaction.getPathways(), null, reaction.getNotes(), addAllNotes, reaction.getGeneRule(), this.levelAndVersion);
 
-			
+
 			sbmlModel.addReaction(rid, name, reaction.getName(), reaction.isReversible(), reactionNote, lower_bound, upper_bound, biomassEquation);
 			reactionsCounter++ ;
 
@@ -521,7 +521,7 @@ public class SBMLWriter {
 				System.err.println(reaction_id +"\t" +reaction.getEntryID());
 			}
 		}
-		
+
 		System.out.println("GENES--->"+genes.size());
 	}
 
@@ -576,49 +576,51 @@ public class SBMLWriter {
 		CVTerm cvTerm = new CVTerm(Type.BIOLOGICAL_QUALIFIER, Qualifier.BQB_IS);
 		annotation.addCVTerm(cvTerm);
 
+		if(urn_id!=null) {
 
-		if(urn_id.startsWith("C")) {
+			if(urn_id.startsWith("C")) {
 
-			if(formula!=null) {
+				if(formula!=null) {
 
-				cvTerm.addResource("FORMULA:" + formula.toUpperCase());
+					cvTerm.addResource("FORMULA:" + formula.toUpperCase());
+				}
+				cvTerm.addResource("urn:miriam:kegg.compound:" + urn_id);
+				//cvTerm.addResource("<url:element>http://www.genome.jp/dbget-bin/www_bget?gl:"+urn_id+ "</url:element>");
+				//annotation.appendNoRDFAnnotation("http://www.genome.jp/dbget-bin/www_bget?gl:"+urn_id);
+				cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?cpd:"+urn_id);
 			}
-			cvTerm.addResource("urn:miriam:kegg.compound:" + urn_id);
-			//cvTerm.addResource("<url:element>http://www.genome.jp/dbget-bin/www_bget?gl:"+urn_id+ "</url:element>");
-			//annotation.appendNoRDFAnnotation("http://www.genome.jp/dbget-bin/www_bget?gl:"+urn_id);
-			cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?cpd:"+urn_id);
-		}
 
-		else if(urn_id.startsWith("G")) {
+			else if(urn_id.startsWith("G")) {
 
-			if(formula!=null) {
+				if(formula!=null) {
 
-				cvTerm.addResource("FORMULA: " + formula.toUpperCase());
+					cvTerm.addResource("FORMULA: " + formula.toUpperCase());
+				}
+				cvTerm.addResource("urn:miriam:kegg.glycan:" + urn_id);
+				cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?gl:"+urn_id);
 			}
-			cvTerm.addResource("urn:miriam:kegg.glycan:" + urn_id);
-			cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?gl:"+urn_id);
-		}
 
-		else if(urn_id.startsWith("D")) {
+			else if(urn_id.startsWith("D")) {
 
-			if(formula!=null) {
+				if(formula!=null) {
 
-				cvTerm.addResource("FORMULA: " + formula.toUpperCase());
+					cvTerm.addResource("FORMULA: " + formula.toUpperCase());
+				}
+				cvTerm.addResource("urn:miriam:kegg.drugs:" + urn_id);
+				cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?dr:"+urn_id);
 			}
-			cvTerm.addResource("urn:miriam:kegg.drugs:" + urn_id);
-			cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?dr:"+urn_id);
-		}
 
-		else if (urn_id.contains("#")) {
+			else if (urn_id.contains("#")) {
 
-			cvTerm.addResource("urn:miriam:tcdb:" + urn_id);
-			cvTerm.addResource("http://www.tcdb.org/search/result.php?tc="+urn_id);
-		}
+				cvTerm.addResource("urn:miriam:tcdb:" + urn_id);
+				cvTerm.addResource("http://www.tcdb.org/search/result.php?tc="+urn_id);
+			}
 
-		else if (urn_id.contains(".")) {
+			else if (urn_id.contains(".")) {
 
-			cvTerm.addResource("urn:miriam:ec-code:" + urn_id);
-			cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?ec:"+urn_id);
+				cvTerm.addResource("urn:miriam:ec-code:" + urn_id);
+				cvTerm.addResource("http://www.genome.jp/dbget-bin/www_bget?ec:"+urn_id);
+			}
 		}
 		return annotation;
 
@@ -650,8 +652,8 @@ public class SBMLWriter {
 		String newGeneRule = geneRule;
 		if(newGeneRule!= null && !levelAndVersion.equals(SBMLLevelVersion.L3V1))			
 			newGeneRule = newGeneRule.replaceAll(" \\(", "_").replaceAll("\\)", "");
-		
-//		System.out.println(newGeneRule);
+
+		//		System.out.println(newGeneRule);
 
 		Set<XMLNode> gener = ContainerBuilder.getGeneRules(genesNotes, notesList, addAllNotes, newGeneRule);
 		Set<XMLNode> proteinr = ContainerBuilder.getProteinRules(proteinsNotes, notesList, addAllNotes);
@@ -719,7 +721,7 @@ public class SBMLWriter {
 	 * @return
 	 */
 	public SBMLDocument getDocument() {
-		
+
 		return this.sbmlDocument;
 	}
 
