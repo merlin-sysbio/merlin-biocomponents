@@ -9,18 +9,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import pt.uminho.ceb.biosystems.merlin.biocomponents.io.ModelSourcesEnumerator.ModelSources;
+import pt.uminho.ceb.biosystems.merlin.biocomponents.io.Enumerators.ModelSources;
 import pt.uminho.ceb.biosystems.merlin.utilities.RulesParser;
-import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedCompoundsDB;
-import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedPathwaysDB;
-import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedReactionsDB;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.CompartmentContainer;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.EnzymeContainer;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.GeneContainer;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.MetaboliteContainer;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.PathwaysHierarchyContainer;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.ReactionContainer;
-import pt.uminho.ceb.biosystems.mew.biocomponents.container.Container;
+import pt.uminho.ceb.biosystems.merlin.utilities.containers.modelSeed.ModelSeedCompoundsDB;
+import pt.uminho.ceb.biosystems.merlin.utilities.containers.modelSeed.ModelSeedPathwaysDB;
+import pt.uminho.ceb.biosystems.merlin.utilities.containers.modelSeed.ModelSeedReactionsDB;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.CompartmentCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.GeneCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.MetaboliteCI;
@@ -34,7 +33,7 @@ import pt.uminho.ceb.biosystems.mew.utilities.math.language.mathboolean.IValue;
 
 public class MerlinImportUtils {
 
-	private Container cont;
+	private MerlinSBMLContainer cont;
 	private ConcurrentLinkedQueue<MetaboliteContainer> resultMetabolites;
 	private ConcurrentLinkedQueue<EnzymeContainer> resultEnzymes;
 	private ConcurrentLinkedQueue<ReactionContainer> resultReactions;
@@ -44,16 +43,24 @@ public class MerlinImportUtils {
 	private ConcurrentLinkedQueue<PathwaysHierarchyContainer> resultPathwaysHierarchy;
 	private ModelSeedReactionsDB reactionsData;
 	private ModelSeedPathwaysDB keggPathwaysData;
+	private ModelSeedCompoundsDB metabolitesData;
 	private Map<String, String> metaboliteCompartments;
 	private List<String> transportReactions;
 	private List<String> drains;
 	private ModelSources modelSource;
+	private Set<String> metabolitesSet;
 //	private Map<String,Integer> genesIds;
+	private Map<String,String> compartments;
+	private Map<String,Set<String>> reactionEnzymes;
+//	private boolean addSpontaneousReactions;
 
 
+//	public MerlinImportUtils(MerlinSBMLContainer sbml3Container, ModelSources source, String level) throws SQLException {
+//		
+//		this(sbml3Container, source);
+//	}
 
-
-	public MerlinImportUtils(Container container, ModelSources source) throws SQLException{
+	public MerlinImportUtils(MerlinSBMLContainer container, ModelSources source) throws SQLException{
 
 		this.cont = container;
 		this.modelSource = source;
@@ -63,9 +70,17 @@ public class MerlinImportUtils {
 		this.resultEnzymes = new ConcurrentLinkedQueue<>();
 		this.resultCompartments = new ConcurrentLinkedQueue<>();
 		this.enzymeNames = new HashMap<>();
-		this.reactionsData = new ModelSeedReactionsDB();
+		this.reactionEnzymes = new HashMap<>();
+		
+		if(this.modelSource.equals(ModelSources.MODEL_SEED)){
+			this.metabolitesData = new ModelSeedCompoundsDB();
+			this.reactionsData = new ModelSeedReactionsDB();
+		}	
+		
 		this.keggPathwaysData = new ModelSeedPathwaysDB();
 		this.metaboliteCompartments = new HashMap<>();
+		this.metabolitesSet = new HashSet<>();
+		this.compartments = new HashMap<>();
 		
 //		if(statement!=null)
 //			this.genesIds = ModelAPI.getGeneIds(statement);
@@ -73,16 +88,25 @@ public class MerlinImportUtils {
 		this.resultPathwaysHierarchy = new ConcurrentLinkedQueue<>();
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
 		this.drains = new ArrayList<>();
+//		this.addSpontaneousReactions = false;
+
 		
+		System.out.println("Reading compartments...");
 		readCompartments();
+		System.out.println("Reading metabolites...");
 		readMetabolites();
+		System.out.println("Reading pathways...");
 		readPathways();
+		System.out.println("Reading genes...");
 		readGenes();
-		readEnzymes();
+		System.out.println("Reading reactions...");
 		readReactions();
+		System.out.println("Reading enzymes...");
+		readEnzymes();
 		
 	}
-
+	
+	
 
 	/**
 	 * 
@@ -100,19 +124,23 @@ public class MerlinImportUtils {
 		//		private String  left_end_position, right_end_position, aasequence, aalength, ntsequence, ntlength;
 
 		Map<String, GeneCI> genes = cont.getGenes();
-
+		
 		if(!genes.isEmpty()){
 
 			for(GeneCI gene : genes.values()){
 
 				String geneID = gene.getGeneId();
+				
+//				System.out.println("GeneID: "+geneID);
+				
+				if(geneID!=null && !geneID.isEmpty()){
 				 
-				GeneContainer geneContainer = new GeneContainer(geneID);
-				if(gene.getGeneName()!=null)
-					geneContainer.setName(gene.getGeneName());
-
-				if(geneContainer.getEntryID() != null)
+					GeneContainer geneContainer = new GeneContainer(geneID);
+					if(gene.getGeneName()!=null)
+						geneContainer.setName(gene.getGeneName());
+					
 					this.resultGenes.add(geneContainer);
+				}
 			}
 		}
 	}
@@ -140,95 +168,110 @@ public class MerlinImportUtils {
 		//		private List<String> same_as;
 
 		Map<String, MetaboliteCI> metabolites = cont.getMetabolites();
-
+		
+		
+//		Set<String> coreMetabolites = new HashSet<>();
+//		if(this.metabolitesData!=null)
+//			coreMetabolites = this.metabolitesData.getCoreCompounds();
+		
 		for(String metID : metabolites.keySet()){
 			
 			if(!metID.endsWith("_b")){
 
 				MetaboliteCI metabolite = metabolites.get(metID);
 //				MetaboliteContainer metContainer = new MetaboliteContainer(metID);
-
-				String metaboliteID = metID.split("_")[1];
-				MetaboliteContainer metContainer = new MetaboliteContainer(metaboliteID);
 				
-				ModelSeedCompoundsDB metaboliteInfo = new ModelSeedCompoundsDB();
+				String metaboliteID = processSBMLMetaboliteID(metID);//.split("_")[1];
+				
+				String metaboliteCompartmentID = cont.getMetaboliteCompartments(metID).toArray()[0].toString();
+				String compartmentName = this.compartments.get(metaboliteCompartmentID);
+//				if(metaboliteCompartmentID!=null && !metaboliteCompartmentID.isEmpty())
+//					compartmentName = this.compartments.get(metaboliteCompartmentID);
+				
+				this.metaboliteCompartments.put(metID, compartmentName);
 
-				//			String[] nameElems = metabolite.getName().split("_");
-				//			String name = "";
 
-				//			for(String elem : nameElems){
-				//
-				//				try {
-				//
-				//					int prefix = Integer.parseInt(elem);
-				//
-				//					name = name.concat(prefix+"").concat(",");
-				//
-				//				} 
-				//				catch (NumberFormatException e) {
-				//
-				//					name = name.concat(set[i].trim());
-				//
-				//					metabolites.add(compound);
-				//
-				//					compound = "";
-				//				}
-				//			}
-
-				if(metaboliteInfo.existsCompoundID(metaboliteID)){
-
-					metContainer.setName(metaboliteInfo.getCompoundName(metaboliteID));
-					metContainer.setFormula(metaboliteInfo.getCompoundFormula(metaboliteID));
-					metContainer.setMolecular_weight(metaboliteInfo.getCompoundMolecularWeight(metaboliteID));
-				}
-				else{
-					metContainer.setName(metabolite.getName());
-					metContainer.setFormula(metabolite.getFormula());
-					Double mass = metabolite.getMass();
-					if(mass != null)
-						metContainer.setMolecular_weight(mass.toString());
+				if(!this.metabolitesSet.contains(metaboliteID)){
 					
+					MetaboliteContainer metContainer = new MetaboliteContainer(metaboliteID);
+
+					//			String[] nameElems = metabolite.getName().split("_");
+					//			String name = "";
+
+					//			for(String elem : nameElems){
+					//
+					//				try {
+					//
+					//					int prefix = Integer.parseInt(elem);
+					//
+					//					name = name.concat(prefix+"").concat(",");
+					//
+					//				} 
+					//				catch (NumberFormatException e) {
+					//
+					//					name = name.concat(set[i].trim());
+					//
+					//					metabolites.add(compound);
+					//
+					//					compound = "";
+					//				}
+					//			}
+					
+					//METABOLITE COMPARTMENT
+					metContainer.setCompartment_name(compartmentName);
+
+					//METABOLITE NAME, FORMULA AND MOLECULAR WEIGHT
+					if(this.metabolitesData!=null && this.metabolitesData.existsCompoundID(metaboliteID)){
+						
+						metContainer.setName(this.metabolitesData.getCompoundName(metaboliteID));
+						metContainer.setFormula(this.metabolitesData.getCompoundFormula(metaboliteID));
+						metContainer.setMolecular_weight(this.metabolitesData.getCompoundMolecularWeight(metaboliteID));
+						
+//						coreMetabolites.remove(metaboliteID);
+					}
+					else{
+						metContainer.setName(metabolite.getName());
+						metContainer.setFormula(metabolite.getFormula());
+						Double mass = metabolite.getMass();
+						if(mass != null && mass!=0)
+							metContainer.setMolecular_weight(mass.toString());
+
+					}
+
+					//METABOLITE REACTIONS
+					Set<String> metaboliteReactions = metabolite.getReactionsId();
+					List<String> reactionsList = new ArrayList<>(metaboliteReactions);
+					metContainer.setReactions(reactionsList);
+
+					//METABOLITE SYMNONYMS
+					if(metabolite.getSymnonyms() != null)
+						metContainer.setSame_as(metabolite.getSymnonyms());
+					
+					this.metabolitesSet.add(metaboliteID);
+					this.resultMetabolites.add(metContainer);
 				}
-				
-				//METABOLITE REACTIONS
-				Set<String> metaboliteReactions = metabolite.getReactionsId();
-				List<String> reactionsList = new ArrayList<>(metaboliteReactions);
-				metContainer.setReactions(reactionsList);
-				if(metID.endsWith("_b"))
-					for(String drainID : reactionsList)
-						if(!drains.contains(drainID))
-							drains.add(drainID);
-				
-				//METABOLITE SYMNONYMS
-				if(metabolite.getSymnonyms() != null)
-					metContainer.setSame_as(metabolite.getSymnonyms());
-				
-				//METABOLITE COMPARTMENT
-				String metaboliteCompartment = cont.getMetaboliteCompartments(metID).toArray()[0].toString();
-				String compartmentName = cont.getCompartment(metaboliteCompartment).getName();
-				if(compartmentName.contains("_"))
-					compartmentName = compartmentName.split("_")[0];
-				
-				metContainer.setCompartment_name(compartmentName);
-				
-				if(metaboliteCompartment != null && !metaboliteCompartment.equals(""))
-					this.metaboliteCompartments.put(metID, compartmentName);
-				
-				this.resultMetabolites.add(metContainer);
-			
 			}
-			
-			Set<String> reactions = cont.getMetabolite(metID).getReactionsId();
-			List<String> reactionsList = new ArrayList<>(reactions);
-			
-			if(metID.endsWith("_b"))
+			else{
+				Set<String> reactionsList = cont.getMetabolite(metID).getReactionsId();
+				
 				for(String drainID : reactionsList)
 					if(!drains.contains(drainID))
 						drains.add(drainID);
+			}
 		}
+		
+//		for(String coreMetabolite : coreMetabolites){
+//			
+//			MetaboliteContainer metaboliteCont = new MetaboliteContainer(coreMetabolite);
+//			
+//			metaboliteCont.setName(this.metabolitesData.getCompoundName(coreMetabolite));
+//			metaboliteCont.setFormula(this.metabolitesData.getCompoundFormula(coreMetabolite));
+//			metaboliteCont.setMolecular_weight(this.metabolitesData.getCompoundMolecularWeight(coreMetabolite));
+//			
+//			this.resultMetabolites.add(metaboliteCont);
+//		}
 	}
 
-	
 	/**
 	 * 
 	 */
@@ -245,20 +288,21 @@ public class MerlinImportUtils {
 		//		private String equation;	X
 		//		private	Map<String, String[]> reactantsStoichiometry;	X
 		//		private	Map<String, String[]> productsStoichiometry;	X
-		//		private Set<String> enzymes, comments, genes, pathways;   X  -  X    -
+		//		private Set<String> enzymes, comments, genes, pathways;   X  -  X    X
 		//		private	Map<String, String> pathwaysMap; 	-
 		//		private String geneRule;  X
 
 		Map<String, ReactionCI> reactions = cont.getReactions();
+		
 
 		for(String idReaction : reactions.keySet()){
 			
 			String reactionID = idReaction;
 			
-			if(idReaction.contains("_")){
+			if(idReaction.startsWith("R_"))
+				reactionID = idReaction.substring(2);
 				
-				if(idReaction.startsWith("R_"))
-					reactionID = idReaction.substring(2);
+			if(reactionID.contains("_")){
 				
 				reactionID = reactionID.substring(0, reactionID.lastIndexOf("_"));
 				
@@ -269,7 +313,7 @@ public class MerlinImportUtils {
 					for(int i=0; i<splitedID.length; i++){
 						
 						if(modelSource.equals(ModelSources.MODEL_SEED)) 
-							if(splitedID[i].matches("rxn\\d+"))
+							if(splitedID[i].matches("rxn\\d{5}"))
 								reactionID = splitedID[i];
 						
 	//					else if(splitedID[i].matches("R\\d{5}"))
@@ -281,18 +325,6 @@ public class MerlinImportUtils {
 				}
 			}
 			
-//			String reactionID = "";
-//			
-//			if(idReaction.contains("_")){
-//				if(idReaction.startsWith("R"))
-//					reactionID = idReaction.split("_")[1].toLowerCase();
-//				else
-//					reactionID = idReaction.split("_")[0].toLowerCase().concat("_").concat(idReaction.split("_")[1].toLowerCase());
-//			}
-//			else
-//				reactionID = idReaction;
-			
-			
 			ReactionContainer reactionContainer = new ReactionContainer(reactionID);
 			ReactionCI reaction = reactions.get(idReaction);
 			
@@ -303,33 +335,36 @@ public class MerlinImportUtils {
 			
 			String externalID = "";
 			
-			if(this.reactionsData.existsReactionID(reactionID)){
+			if(this.reactionsData!=null && this.reactionsData.existsReactionID(reactionID)){
 				
 				if(this.reactionsData.getReactionAbbreviation(reactionID).contains("_"))
 					externalID = this.reactionsData.getReactionAbbreviation(reactionID).split("_")[1];
 				else
 					externalID = this.reactionsData.getReactionAbbreviation(reactionID);
 				
-				if(externalID.startsWith("R")){
+				if(externalID.matches("R\\d{5}")){
 					
-					try {
-						Integer.parseInt(externalID.substring(1));	//verify we have an ID number with KeggID format ("R"+ numbers)
+//					try {
+//						Integer.parseInt(externalID.substring(1));	//verify we have an ID number with KeggID format ("R"+ numbers)
 						reactionContainer.setEntryID(externalID);
-					} 
-					catch (NumberFormatException e) {
-					}
+//					} 
+//					catch (NumberFormatException e) {
+//					}
 				}
 				
 				if(reaction.isReversible() == reactionsData.isReactionReversible(reactionID)){
-					String splitChar = "";
-					if(!reactionsData.isReactionReversible(reactionID))
-						splitChar = reactionsData.getReactionDirection(reactionID);
-					else
-						splitChar = "<=>";
 					
-					String equation = this.reactionsData.getReactionEquation(reactionID).replaceAll("[\\[\\(]\\s*\\d*\\s*[\\]\\)]", "").trim();
+//					String splitChar = "";
+//					if(!reactionsData.isReactionReversible(reactionID))
+//						splitChar = reactionsData.getReactionDirection(reactionID);
+//					else
+//						splitChar = "<=>";
 					
-					if(equation.trim().split(splitChar).length == 2)
+					String equation = this.reactionsData.getReactionEquation(reactionID);//.replaceAll("[\\[\\(]\\s*\\d*\\s*[\\]\\)]", "").trim();
+					
+//					if(equation.trim().split(splitChar).length == 2)
+//						reactionContainer.setEquation(equation);
+					if(!equation.isEmpty())
 						reactionContainer.setEquation(equation);
 				}
 			}
@@ -367,6 +402,9 @@ public class MerlinImportUtils {
 					equation.replaceAll("[\\[\\(]\\s*\\d*\\s*[\\]\\)]", "").trim();
 					reactionContainer.setEquation(equation);
 				}
+				else{
+					reactionContainer.setEquation(reaction.getName());
+				}
 			}
 			
 			reactionContainer.setReactionID(reactionID);
@@ -387,20 +425,24 @@ public class MerlinImportUtils {
 				
 //				String geneRule = RulesParser.getGeneRuleString(geneCombinations, this.genesIds);
 				String geneRule = RulesParser.getOR_geneRulesList2String(geneCombinations);
+				
 				reactionContainer.setGeneRule(geneRule);
 			}
 			
-			//ENZYME NAME
+			//ENZYMES
+			Set<String> enzymes = reaction.getEcNumbers();
+			reactionContainer.setEnzymes(enzymes);
 			String name = reaction.getName();
 			reactionContainer.setName(name);
-			this.enzymeNames.put(name, reactionID);
+			this.enzymeNames.put(reactionID,name);
+			this.reactionEnzymes.put(reactionID,enzymes);
 
 			//BOUNDS
 			if(cont.getDefaultEC().containsKey(idReaction)){
 				reactionContainer.setLowerBound(cont.getDefaultEC().get(idReaction).getLowerLimit());
 				reactionContainer.setUpperBound(cont.getDefaultEC().get(idReaction).getUpperLimit());
 			}
-
+			
 			//REACTANTS STOICHIOMETRY
 			Map<String, String[]> reactantsStoichiometry = new HashMap<>();
 
@@ -415,12 +457,16 @@ public class MerlinImportUtils {
 					stoichiometryValue[2] = this.metaboliteCompartments.get(reactantID);
 					
 					//verify if compartments of metabolites in reaction matches
-					String compID = reactantID.split("_")[2];
-					if(compID!=null && !compID.isEmpty() && !compID.equals("b")){
+					String compID = null;
+					for(String component : reactantID.split("_"))
+						if(this.compartments.keySet().contains(component))
+							compID=component;
+					
+					if(compID!=null && !compID.isEmpty()){
 						
-						String compartmentName = cont.getCompartment(compID).getName().split("_")[0];
-						if(compartmentName.contains("_"))
-							compartmentName = compartmentName.split("_")[0];
+						String compartmentName = this.compartments.get(compID);
+//						if(compartmentName.contains("_"))
+//							compartmentName = compartmentName.split("_")[0];
 						
 						if(!compartmentName.equals(this.metaboliteCompartments.get(reactantID))){
 							if(reactionContainer.getNotes()==null || reactionContainer.getNotes().isEmpty())
@@ -448,23 +494,29 @@ public class MerlinImportUtils {
 					stoichiometryValue[2] = this.metaboliteCompartments.get(productID);
 					
 					//verify if compartments of metabolites in reaction matches
-					String compID = productID.split("_")[2];
-					if(compID!=null && !compID.isEmpty() && !compID.equals("b")){
+//					String compID = productID.split("_")[2];
+					String compID = null;
+					for(String component : productID.split("_"))
+						if(this.compartments.keySet().contains(component))
+							compID=component;
+					
+					if(compID!=null && !compID.isEmpty()){
 						
-						String compartmentName = cont.getCompartment(compID).getName();
-						if(compartmentName.contains("_"))
-							compartmentName = compartmentName.split("_")[0];
+						String compartmentName = this.compartments.get(compID);
+						
+//						if(compartmentName.contains("_"))
+//							compartmentName = compartmentName.split("_")[0];
 						
 						if(!compartmentName.equals(this.metaboliteCompartments.get(productID))){
 							if(reactionContainer.getNotes()==null || reactionContainer.getNotes().isEmpty())
-								reactionContainer.setNotes("verify the products compartments for this reaction");
+								reactionContainer.setNotes("verify products compartments for this reaction");
 						}
 					}
-	
+					
 					productsStoichiometry.put(productID, stoichiometryValue);
 				}
 			}
-
+			
 			reactionContainer.setProductsStoichiometry(productsStoichiometry);
 			
 			//PATHWAYS
@@ -529,23 +581,22 @@ public class MerlinImportUtils {
 
 		Map<String, Set<String>> ecNumbers = cont.getECNumbers();
 		
-		System.out.println(ecNumbers);
-
 		for(String ecNumber : ecNumbers.keySet()){
-
+			
 			EnzymeContainer enzymeContainer = new EnzymeContainer(ecNumber);
 			
 			Set<String> reactionsSet = ecNumbers.get(ecNumber);
 			List<String> reactions = new ArrayList<>();
 			List<String> names = new ArrayList<>();
-
+			
 			for(String reaction : reactionsSet){
 				
 				String reactionID = "";
 				
 				if(reaction.contains("_")){
 					
-					String[] reacNameSplit = reaction.toLowerCase().split("_");
+//					String[] reacNameSplit = reaction.toLowerCase().split("_");
+					String[] reacNameSplit = reaction.split("_");
 					
 					if(reaction.startsWith("R"))
 						reactionID = reacNameSplit[1];
@@ -559,14 +610,16 @@ public class MerlinImportUtils {
 				
 				String name = "";
 				
-				if(this.reactionsData.existsReactionID(reactionID))
+				if(this.reactionsData!=null && this.reactionsData.existsReactionID(reactionID))
 					name = this.reactionsData.getEnzymeName(reactionID);
 				else if(this.enzymeNames.containsKey(reactionID))
 					name = this.enzymeNames.get(reactionID);
-					
+				
 				if(name.length()>10)
 					names.add(name);
 			}
+			
+			enzymeContainer.setReactions(reactions);
 
 			if(names.size()==1){
 				enzymeContainer.setName(names.get(0));
@@ -575,7 +628,6 @@ public class MerlinImportUtils {
 			else
 				enzymeContainer.setNames(names);
 			
-			enzymeContainer.setReactions(reactions);
 			enzymeContainer.setEnzyme_class(ecNumber);
 
 			if(enzymeContainer.getEntryID() != null)
@@ -630,16 +682,59 @@ public class MerlinImportUtils {
 		Map<String, CompartmentCI> compartments = cont.getCompartments();
 
 		for(String compartmentID : compartments.keySet()){
-
+			
 			CompartmentCI compartment = compartments.get(compartmentID);
 			String compartmentName = compartment.getName().split("_")[0];
 
 			CompartmentContainer compartmentContainer = new CompartmentContainer(compartmentID, compartmentName, compartmentID);
 
+			this.compartments.put(compartmentID, compartmentName);
 			this.resultCompartments.add(compartmentContainer);
 		}
 	}
 
+	
+	
+	/**
+	 * @param sbmlMetaboliteID
+	 * @return
+	 */
+	public static String processSBMLGeneID(String sbmlGeneID) {
+		
+		String processedGeneID = sbmlGeneID;
+		
+		if(processedGeneID.matches("^[Gg]_.+"))
+			processedGeneID = processedGeneID.replaceAll("^[Gg]_","");
+		
+		
+		
+		return processedGeneID;
+	}
+	
+	/**
+	 * @param sbmlMetaboliteID
+	 * @return
+	 */
+	public static String processSBMLMetaboliteID(String sbmlMetaboliteID) {
+		
+		String processedMetID = sbmlMetaboliteID;
+		
+		if(processedMetID.matches("^[Mm]_.+"))
+			processedMetID = processedMetID.replaceAll("^[Mm]_","");
+		
+		String[] metIDSplited = sbmlMetaboliteID.split("_");
+		
+		for(String splitedId : metIDSplited){
+			
+			if(splitedId.matches("cpd\\d{5}"))
+				processedMetID = splitedId;
+		}
+		
+		if(processedMetID.matches(".+[^_]_\\w{1,2}$"))
+			processedMetID = processedMetID.substring(0, processedMetID.lastIndexOf("_"));		
+		
+		return processedMetID;
+	}
 
 	
 	/**

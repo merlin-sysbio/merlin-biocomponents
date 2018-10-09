@@ -53,7 +53,7 @@ import org.sbml.jsbml.validator.SyntaxChecker;
 import org.sbml.jsbml.xml.XMLNode;
 import org.sbml.jsbml.xml.parsers.MathMLStaxParser;
 
-import pt.uminho.ceb.biosystems.merlin.biocomponents.io.SBMLLevelVersion;
+import pt.uminho.ceb.biosystems.merlin.biocomponents.io.Enumerators.SBMLLevelVersion;
 import pt.uminho.ceb.biosystems.merlin.utilities.Utilities;
 import pt.uminho.ceb.biosystems.merlin.utilities.external.ExternalRef;
 import pt.uminho.ceb.biosystems.merlin.utilities.external.ExternalRefSource;
@@ -96,7 +96,7 @@ public class SBMLLevel3Writer {
 
 
 	private static final double DEFAULT_BOUND_VALUE = 999999;
-	private static final boolean PARAMETER_CONSTANT = true;
+	private static final boolean PARAMETER_IS_CONSTANT = true;
 	private static final boolean METABOLITE_CONSTANT = false;
 	private static final boolean METABOLITE_HAS_ONLY_SUBSTANCE_UNITS = false;
 	private static final double DEFAULT_INITIAL_AMOUNT = 1.0;
@@ -343,7 +343,7 @@ public class SBMLLevel3Writer {
 		if(id==null)
 			id="ID";
 		if(name==null)
-			name="Mode exported by merlin software";
+			name="Model exported by merlin software";
 		model.setId(id);
 		model.setName(name);
 
@@ -416,7 +416,7 @@ public class SBMLLevel3Writer {
 		list_unitDef.add(unit_def);
 
 		//SUBSTANCE
-		unit_def = new UnitDefinition("substance", "Millimoles per gram (dry weight)", levelAndVersion.getLevel(), levelAndVersion.getVersion());
+		UnitDefinition unit_definition = new UnitDefinition("substance", "Millimoles per gram (dry weight)", levelAndVersion.getLevel(), levelAndVersion.getVersion());
 		list_unit = new ListOf<Unit>(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 
 		Unit unit_mole2 = unit_mole.clone();
@@ -424,19 +424,19 @@ public class SBMLLevel3Writer {
 		list_unit.add(unit_mole2);
 		list_unit.add(unit_gram2);
 
-		unit_def.setListOfUnits(list_unit);
-		list_unitDef.add(unit_def);
+		unit_definition.setListOfUnits(list_unit);
+		list_unitDef.add(unit_definition);
 
 		//TIME
-		unit_def = new UnitDefinition("time", "Hour", levelAndVersion.getLevel(), levelAndVersion.getVersion());
+		unit_definition = new UnitDefinition("time", "Hour", levelAndVersion.getLevel(), levelAndVersion.getVersion());
 		list_unit = new ListOf<Unit>(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 
 		Unit unit_time = unit_second.clone();
 		unit_time.setExponent(1.0);
 		list_unit.add(unit_time);
 
-		unit_def.setListOfUnits(list_unit);
-		list_unitDef.add(unit_def);
+		unit_definition.setListOfUnits(list_unit);
+		list_unitDef.add(unit_definition);
 
 		/** set list of unit definitions */
 		model.setListOfUnitDefinitions(list_unitDef);
@@ -784,7 +784,6 @@ public class SBMLLevel3Writer {
 				sbmlSpecies.setBoundaryCondition(true);
 				sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
 				sbmlSpecies.setConstant(METABOLITE_CONSTANT);
-
 				sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
 
 				if(model.getSpecies(newmet.getId())==null)
@@ -800,7 +799,6 @@ public class SBMLLevel3Writer {
 				sbmlSpecies.setBoundaryCondition(true);
 				sbmlSpecies.setHasOnlySubstanceUnits(METABOLITE_HAS_ONLY_SUBSTANCE_UNITS);
 				sbmlSpecies.setConstant(METABOLITE_CONSTANT);
-
 				sbmlSpecies.setInitialAmount(DEFAULT_INITIAL_AMOUNT);
 
 				if(model.getSpecies(newmet.getId())==null)
@@ -819,26 +817,26 @@ public class SBMLLevel3Writer {
 
 		ListOf<Parameter> listParameters = new ListOf<Parameter>(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 
-		Parameter defaultLB = new Parameter("merlin_defaulLB");
-		defaultLB.setConstant(PARAMETER_CONSTANT);
-		defaultLB.setName("merlin_default_lowerBound");
-		defaultLB.setUnits(unitDef);
-		defaultLB.setValue(-DEFAULT_BOUND_VALUE);
-		listParameters.add(0, defaultLB);
-
-		Parameter boundZero = new Parameter("merlin_0_bound");
-		boundZero.setConstant(PARAMETER_CONSTANT );
-		boundZero.setName("merlin_0_bound");
-		boundZero.setUnits(unitDef);
-		boundZero.setValue(0);
-		listParameters.add(1, boundZero);
-
-		Parameter defaultUB = new Parameter("merlin_defaulUB");
-		defaultUB.setConstant(PARAMETER_CONSTANT);
-		defaultUB.setName("merlin_default_upperBound");
-		defaultUB.setUnits(unitDef);
-		defaultUB.setValue(DEFAULT_BOUND_VALUE);
-		listParameters.add(2, defaultUB);
+//		Parameter defaultLB = new Parameter("merlin_defaulLB");
+//		defaultLB.setConstant(PARAMETER_CONSTANT);
+//		defaultLB.setName("merlin_default_lowerBound");
+//		defaultLB.setUnits(unitDef);
+//		defaultLB.setValue(-DEFAULT_BOUND_VALUE);
+//		listParameters.add(0, defaultLB);
+//
+//		Parameter boundZero = new Parameter("merlin_0_bound");
+//		boundZero.setConstant(PARAMETER_CONSTANT );
+//		boundZero.setName("merlin_0_bound");
+//		boundZero.setUnits(unitDef);
+//		boundZero.setValue(0);
+//		listParameters.add(1, boundZero);
+//
+//		Parameter defaultUB = new Parameter("merlin_defaulUB");
+//		defaultUB.setConstant(PARAMETER_CONSTANT);
+//		defaultUB.setName("merlin_default_upperBound");
+//		defaultUB.setUnits(unitDef);
+//		defaultUB.setValue(DEFAULT_BOUND_VALUE);
+//		listParameters.add(2, defaultUB);
 
 		//		Map<String,Map<String,String>> reactionsExtraInfo = container.getReactionsExtraInfo();
 
@@ -1108,10 +1106,34 @@ public class SBMLLevel3Writer {
 	 */
 	public void writeBounds(ReactionCI ogreaction, Reaction sbmlReaction, ListOf<Parameter> listParameters, UnitDefinition unitDef){
 
+		if(listParameters.isEmpty()){
+			
+			Parameter defaultLB = new Parameter("merlin_defaulLB");
+			defaultLB.setConstant(PARAMETER_IS_CONSTANT);
+			defaultLB.setName("merlin_default_lowerBound");
+			defaultLB.setUnits(unitDef);
+			defaultLB.setValue(-DEFAULT_BOUND_VALUE);
+			listParameters.add(0, defaultLB);
+
+			Parameter boundZero = new Parameter("merlin_0_bound");
+			boundZero.setConstant(PARAMETER_IS_CONSTANT );
+			boundZero.setName("merlin_0_bound");
+			boundZero.setUnits(unitDef);
+			boundZero.setValue(0);
+			listParameters.add(1, boundZero);
+
+			Parameter defaultUB = new Parameter("merlin_defaulUB");
+			defaultUB.setConstant(PARAMETER_IS_CONSTANT);
+			defaultUB.setName("merlin_default_upperBound");
+			defaultUB.setUnits(unitDef);
+			defaultUB.setValue(DEFAULT_BOUND_VALUE);
+			listParameters.add(2, defaultUB);
+		}
+		
 		Parameter lowerP = new Parameter();
 		Parameter upperP = new Parameter();
-		lowerP.setConstant(PARAMETER_CONSTANT);
-		upperP.setConstant(PARAMETER_CONSTANT);
+		lowerP.setConstant(PARAMETER_IS_CONSTANT);
+		upperP.setConstant(PARAMETER_IS_CONSTANT);
 
 		FBCReactionPlugin fbcBounds = new FBCReactionPlugin(sbmlReaction);
 

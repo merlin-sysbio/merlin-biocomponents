@@ -29,7 +29,7 @@ import org.sbml.jsbml.xml.XMLNode;
 import org.sbml.jsbml.xml.XMLTriple;
 
 import pt.uminho.ceb.biosystems.merlin.biocomponents.container.SBML_Model;
-import pt.uminho.ceb.biosystems.merlin.biocomponents.io.SBMLLevelVersion;
+import pt.uminho.ceb.biosystems.merlin.biocomponents.io.Enumerators.SBMLLevelVersion;
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.readers.ContainerBuilder;
 import pt.uminho.ceb.biosystems.merlin.database.connector.databaseAPI.CompartmentsAPI;
 import pt.uminho.ceb.biosystems.merlin.database.connector.databaseAPI.ModelAPI;

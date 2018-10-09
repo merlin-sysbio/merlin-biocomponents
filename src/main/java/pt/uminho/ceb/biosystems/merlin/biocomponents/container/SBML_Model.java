@@ -23,7 +23,8 @@ import org.sbml.jsbml.Species;
 import org.sbml.jsbml.SpeciesReference;
 import org.sbml.jsbml.xml.XMLNode;
 
-import pt.uminho.ceb.biosystems.merlin.biocomponents.io.SBMLLevelVersion;
+import pt.uminho.ceb.biosystems.merlin.biocomponents.io.Enumerators.SBMLLevelVersion;
+
 
 
 /**
