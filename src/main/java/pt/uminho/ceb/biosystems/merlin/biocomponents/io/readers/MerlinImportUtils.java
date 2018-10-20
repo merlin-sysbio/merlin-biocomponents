@@ -47,12 +47,14 @@ public class MerlinImportUtils {
 	private Map<String, String> metaboliteCompartments;
 	private List<String> transportReactions;
 	private List<String> drains;
+	private List<String> biomassPathway;
 	private ModelSources modelSource;
-	private Set<String> metabolitesSet;
+	private Set<String> metabolitesSet, reactionsSet;
 //	private Map<String,Integer> genesIds;
 	private Map<String,String> compartments;
 	private Map<String,Set<String>> reactionEnzymes;
 //	private boolean addSpontaneousReactions;
+	private String biomassReaction;
 
 
 //	public MerlinImportUtils(MerlinSBMLContainer sbml3Container, ModelSources source, String level) throws SQLException {
@@ -80,14 +82,17 @@ public class MerlinImportUtils {
 		this.keggPathwaysData = new ModelSeedPathwaysDB();
 		this.metaboliteCompartments = new HashMap<>();
 		this.metabolitesSet = new HashSet<>();
+		this.reactionsSet = new HashSet<>();
 		this.compartments = new HashMap<>();
 		
 //		if(statement!=null)
 //			this.genesIds = ModelAPI.getGeneIds(statement);
 		
+		this.processBiomass();
+		
 		this.resultPathwaysHierarchy = new ConcurrentLinkedQueue<>();
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
-		this.drains = new ArrayList<>();
+		this.drains = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Drain));
 //		this.addSpontaneousReactions = false;
 
 		
@@ -107,6 +112,21 @@ public class MerlinImportUtils {
 	}
 	
 	
+	
+	/**
+	 * 
+	 */
+	private void processBiomass(){
+		
+		this.biomassReaction = cont.getBiomassId();
+		
+		if(biomassReaction!=null && !biomassReaction.isEmpty())
+			if(!cont.getReaction(biomassReaction).getType().equals(ReactionTypeEnum.Biomass)
+					&& biomassReaction.toLowerCase().contains("biomass"))
+				cont.getReaction(biomassReaction).setType(ReactionTypeEnum.Biomass);
+		
+		this.biomassPathway = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Biomass));
+	}
 
 	/**
 	 * 
@@ -169,6 +189,10 @@ public class MerlinImportUtils {
 
 		Map<String, MetaboliteCI> metabolites = cont.getMetabolites();
 		
+		boolean saveDrains = true;
+		if(this.drains!=null && !this.drains.isEmpty())
+			saveDrains = false;
+		
 		
 //		Set<String> coreMetabolites = new HashSet<>();
 //		if(this.metabolitesData!=null)
@@ -179,7 +203,6 @@ public class MerlinImportUtils {
 			if(!metID.endsWith("_b")){
 
 				MetaboliteCI metabolite = metabolites.get(metID);
-//				MetaboliteContainer metContainer = new MetaboliteContainer(metID);
 				
 				String metaboliteID = processSBMLMetaboliteID(metID);//.split("_")[1];
 				
@@ -194,28 +217,6 @@ public class MerlinImportUtils {
 				if(!this.metabolitesSet.contains(metaboliteID)){
 					
 					MetaboliteContainer metContainer = new MetaboliteContainer(metaboliteID);
-
-					//			String[] nameElems = metabolite.getName().split("_");
-					//			String name = "";
-
-					//			for(String elem : nameElems){
-					//
-					//				try {
-					//
-					//					int prefix = Integer.parseInt(elem);
-					//
-					//					name = name.concat(prefix+"").concat(",");
-					//
-					//				} 
-					//				catch (NumberFormatException e) {
-					//
-					//					name = name.concat(set[i].trim());
-					//
-					//					metabolites.add(compound);
-					//
-					//					compound = "";
-					//				}
-					//			}
 					
 					//METABOLITE COMPARTMENT
 					metContainer.setCompartment_name(compartmentName);
@@ -251,12 +252,12 @@ public class MerlinImportUtils {
 					this.resultMetabolites.add(metContainer);
 				}
 			}
-			else{
+			else if(saveDrains){
 				Set<String> reactionsList = cont.getMetabolite(metID).getReactionsId();
 				
 				for(String drainID : reactionsList)
-					if(!drains.contains(drainID))
-						drains.add(drainID);
+					if(!this.drains.contains(drainID))
+						this.drains.add(drainID);
 			}
 		}
 		
@@ -294,7 +295,6 @@ public class MerlinImportUtils {
 
 		Map<String, ReactionCI> reactions = cont.getReactions();
 		
-
 		for(String idReaction : reactions.keySet()){
 			
 			String reactionID = idReaction;
@@ -324,14 +324,35 @@ public class MerlinImportUtils {
 					}
 				}
 			}
-			
-			ReactionContainer reactionContainer = new ReactionContainer(reactionID);
+
 			ReactionCI reaction = reactions.get(idReaction);
 			
 			Map <String, StoichiometryValueCI> reactants = reaction.getReactants();
 			Map <String, StoichiometryValueCI> products = reaction.getProducts();
 			
+			String compSuffix = "";
+			
+			if(reactants.get(reactants.keySet().iterator().next()).getCompartmentId()!=null 
+					&& !reactants.get(reactants.keySet().iterator().next()).getCompartmentId().isEmpty())
+				compSuffix = compSuffix.concat("_").concat(reactants.get(reactants.keySet().iterator().next()).getCompartmentId());
+			
+			else if(!reaction.identifyCompartments().isEmpty() && reaction.identifyCompartments()!=null)
+				compSuffix = compSuffix.concat("_").concat(reaction.identifyCompartments().toArray()[0].toString());
+
+			String reactionIDcompartment = reactionID.concat(compSuffix);
+			
+			int i=1;
+			while(this.reactionsSet.contains(reactionIDcompartment)){
+				reactionIDcompartment = reactionIDcompartment.concat("_copy")+i;
+				i++;
+			}
+			
+			ReactionContainer reactionContainer = new ReactionContainer(reactionIDcompartment);
 			reactionContainer.setReversible(reaction.isReversible());
+			
+			//REACTION COMPARTMENT
+			if(!compSuffix.isEmpty())
+				reactionContainer.setLocalisation(cont.getCompartment(compSuffix.substring(1)).getName().split("_")[0]);
 			
 			String externalID = "";
 			
@@ -346,11 +367,20 @@ public class MerlinImportUtils {
 					
 //					try {
 //						Integer.parseInt(externalID.substring(1));	//verify we have an ID number with KeggID format ("R"+ numbers)
-						reactionContainer.setEntryID(externalID);
+					reactionIDcompartment = externalID.concat(compSuffix);
+					
+					i=1;
+					while(this.reactionsSet.contains(reactionIDcompartment)){
+						reactionIDcompartment = reactionIDcompartment.concat("_copy")+i;
+						i++;
+					}
+					
+					reactionContainer.setEntryID(reactionIDcompartment);
 //					} 
 //					catch (NumberFormatException e) {
 //					}
 				}
+					
 				
 				if(reaction.isReversible() == reactionsData.isReactionReversible(reactionID)){
 					
@@ -368,6 +398,8 @@ public class MerlinImportUtils {
 						reactionContainer.setEquation(equation);
 				}
 			}
+			
+			this.reactionsSet.add(reactionIDcompartment);
 			
 			//EQUATION
 			if(reactionContainer.getEquation() == null) {
@@ -413,10 +445,6 @@ public class MerlinImportUtils {
 			reactionContainer.setEnzymes(reaction.getProteinIds());
 			reactionContainer.setInModel(true);
 			
-			//REACTION COMPARTMENT
-			if(!reaction.identifyCompartments().isEmpty())
-				reactionContainer.setLocalisation(cont.getCompartment(reaction.identifyCompartments().toArray()[0].toString()).getName().split("_")[0]);
-			
 //			GENES RULES
 			if(reaction.getGeneRule()!=null && reaction.getGeneRule().size()!=0){
 				
@@ -452,7 +480,10 @@ public class MerlinImportUtils {
 				
 	//				String kBaseReactantID = reactantID.split("_")[1];
 					String[] stoichiometryValue = new String[3];
-					stoichiometryValue[0] = Double.toString(-reactants.get(reactantID).getStoichiometryValue());
+					Double stoichCoef = reactants.get(reactantID).getStoichiometryValue();
+					if(stoichCoef>0)
+						stoichCoef = -stoichCoef;
+					stoichiometryValue[0] = Double.toString(stoichCoef);
 					stoichiometryValue[1] = "";
 					stoichiometryValue[2] = this.metaboliteCompartments.get(reactantID);
 					
@@ -489,7 +520,10 @@ public class MerlinImportUtils {
 				
 	//				String kBaseProductID = productID.split("_")[1];
 					String[] stoichiometryValue = new String[3];
-					stoichiometryValue[0] = Double.toString(products.get(productID).getStoichiometryValue());
+					Double stoichCoef = products.get(productID).getStoichiometryValue();
+					if(stoichCoef<0)
+						stoichCoef = -stoichCoef;
+					stoichiometryValue[0] = Double.toString(stoichCoef);
 					stoichiometryValue[1] = "";
 					stoichiometryValue[2] = this.metaboliteCompartments.get(productID);
 					
@@ -520,13 +554,24 @@ public class MerlinImportUtils {
 			reactionContainer.setProductsStoichiometry(productsStoichiometry);
 			
 			//PATHWAYS
-			if(drains.contains(idReaction)){
+			Set<String> pathways = new HashSet<>();
+			Map<String, String> pathwaysMap = new HashMap<>();
+			
+			if(idReaction.equals(this.biomassReaction) || this.biomassPathway.contains(idReaction)){
 				
-				Set<String> pathway = new HashSet<>();
-				pathway.add("D0001");
-				reactionContainer.setPathways(pathway);
+				pathways.add("B0001");
+				reactionContainer.setPathways(pathways);
 				
-				Map<String, String> pathwaysMap = new HashMap<>();
+				pathwaysMap.put("B0001", "Biomass Pathway");
+				
+				reactionContainer.setPathwaysMap(pathwaysMap);
+			}
+			
+			else if(drains.contains(idReaction)){
+				
+				pathways.add("D0001");
+				reactionContainer.setPathways(pathways);
+				
 				pathwaysMap.put("D0001", "Drains pathway");
 				
 				reactionContainer.setPathwaysMap(pathwaysMap);
@@ -534,11 +579,9 @@ public class MerlinImportUtils {
 			
 			else if(transportReactions.contains(idReaction)){
 				
-				Set<String> pathway = new HashSet<>();
-				pathway.add("T0001");
-				reactionContainer.setPathways(pathway);
+				pathways.add("T0001");
+				reactionContainer.setPathways(pathways);
 				
-				Map<String, String> pathwaysMap = new HashMap<>();
 				pathwaysMap.put("T0001", "Transporters pathway");
 				
 				reactionContainer.setPathwaysMap(pathwaysMap);
@@ -546,10 +589,8 @@ public class MerlinImportUtils {
 				
 			else if(keggPathwaysData.existsReactionIDinKeggPathway(externalID)){
 				
-				Set<String> pathways = new HashSet<String>(keggPathwaysData.getReactionPathways(externalID));
+				pathways.addAll(keggPathwaysData.getReactionPathways(externalID));
 				reactionContainer.setPathways(pathways);
-				
-				Map<String, String> pathwaysMap = new HashMap<>();
 				
 				for(String pathway : pathways)
 					pathwaysMap.put(pathway, keggPathwaysData.getPathwayName(pathway));
@@ -778,4 +819,13 @@ public class MerlinImportUtils {
 	public ConcurrentLinkedQueue<PathwaysHierarchyContainer> getResultPathwaysHierarchy(){
 		return resultPathwaysHierarchy;
 	}
+
+
+	/**
+	 * @return the biomassReaction
+	 */
+	public String getBiomassReaction() {
+		return biomassReaction;
+	}
+
 }

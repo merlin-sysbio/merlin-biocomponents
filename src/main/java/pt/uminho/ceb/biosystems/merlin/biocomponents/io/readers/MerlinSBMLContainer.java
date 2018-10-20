@@ -14,6 +14,7 @@ import pt.uminho.ceb.biosystems.merlin.bioapis.externalAPI.ebi.uniprot.UniProtAP
 import pt.uminho.ceb.biosystems.merlin.utilities.Pair;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.Container;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.ReactionCI;
+import pt.uminho.ceb.biosystems.mew.biocomponents.container.components.ReactionConstraintCI;
 import pt.uminho.ceb.biosystems.mew.biocomponents.container.interfaces.IContainerBuilder;
 import uk.ac.ebi.kraken.interfaces.uniprot.UniProtEntry;
 import uk.ac.ebi.kraken.interfaces.uniprot.description.Field;
@@ -28,6 +29,7 @@ public class MerlinSBMLContainer extends Container{
 	
 	public MerlinSBMLContainer(IContainerBuilder reader, boolean throwerros) throws IOException {
 		super(reader, throwerros);
+		this.verifyReactionsReversibility();
 	}
 	
 	public MerlinSBMLContainer(IContainerBuilder reader) throws IOException {
@@ -42,6 +44,28 @@ public class MerlinSBMLContainer extends Container{
 //		this.proteinsByDatabase = reader.getProteinsByDatase();
 	}
 	
+	
+	/**
+	 * 
+	 */
+	private void verifyReactionsReversibility() {
+		
+		boolean isReversible;
+		
+		;
+		
+		for(String reac : this.reactions.keySet()){
+			
+			ReactionConstraintCI bounds = this.defaultEC.get(reac);
+			
+			if(bounds.getLowerLimit()<0 && bounds.getUpperLimit()>0)
+				isReversible = true;
+			else
+				isReversible = false;
+			
+			this.reactions.get(reac).setReversible(isReversible);
+		}
+	}
 	
 	//Method copied from MEW Container and corrected
 	@Override
@@ -68,14 +92,17 @@ public class MerlinSBMLContainer extends Container{
 
 //			String ec_number = reac.getEc_number().trim();			
 
-			for(String ec_number : reac.getEcNumbers()){
-				if(!ec_number.equals("")){
+			if(reac.getEcNumbers()!=null){
 
-					Set<String> reactions = ret.get(ec_number);
-					if(reactions == null)
-						reactions = new TreeSet<String>(); 
-					reactions.add(reac.getId());
-					ret.put(ec_number, reactions);
+				for(String ec_number : reac.getEcNumbers()){
+					if(!ec_number.equals("")){
+
+						Set<String> reactions = ret.get(ec_number);
+						if(reactions == null)
+							reactions = new TreeSet<String>(); 
+						reactions.add(reac.getId());
+						ret.put(ec_number, reactions);
+					}
 				}
 			}
 		}

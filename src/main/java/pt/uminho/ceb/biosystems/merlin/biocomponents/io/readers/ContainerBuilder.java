@@ -255,8 +255,6 @@ public class ContainerBuilder implements IContainerBuilder {
 
 					String locus= list2[2], geneName = null;
 					
-					System.out.println(list2[2]);
-
 					if(list2[1]!=null)
 						geneName = list2[1].replace(" ","").replace(",","_").replace("/","_").replace("\\","_").trim();
 
@@ -376,7 +374,8 @@ public class ContainerBuilder implements IContainerBuilder {
 				CompartmentContainer compartmentContainer = new CompartmentContainer(idCompartment, list.get(0), list.get(1));
 				this.compartments.put(idCompartment, compartmentContainer);
 				
-				if((list.get(0).equalsIgnoreCase("extracellular") && isCompartmentalized) || (list.get(0).equalsIgnoreCase("outside") && !isCompartmentalized))
+				if((list.get(0).equalsIgnoreCase("extracellular") && isCompartmentalized) || (list.get(0).equalsIgnoreCase("outside") && !isCompartmentalized) 
+						|| (list.get(1).equalsIgnoreCase("e") && isCompartmentalized))
 					this.externalCompartmentID=this.getCompartmentID(idCompartment);
 			}
 
@@ -525,7 +524,7 @@ public class ContainerBuilder implements IContainerBuilder {
 						logger.error("null compartment {} for metabolite {} ", metabolite,this.compartmentID);
 
 					double value = Double.valueOf(metabolite.getStoichiometric_coefficient());
-
+					
 					StoichiometryValueCI s = new StoichiometryValueCI(mid, Math.abs( value), compartmentId);
 					this.compartmentsMap.get(compartmentId).addMetaboliteInCompartment(mid);
 					if(value>0)

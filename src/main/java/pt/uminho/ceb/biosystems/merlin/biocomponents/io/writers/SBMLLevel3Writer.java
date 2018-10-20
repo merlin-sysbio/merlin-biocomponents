@@ -215,6 +215,7 @@ public class SBMLLevel3Writer {
 			new_metabolite_name += "_b";
 			new_metabolite = metabolites.get(name).clone();
 			new_metabolite.setId(new_metabolite_name);
+			
 			if(isReactant)
 				new_metabolites_names_p.put(reaction, new_metabolite);
 			else
@@ -770,9 +771,9 @@ public class SBMLLevel3Writer {
 	 * @throws Exception 
 	 */
 	public void loadDrains(Model model) throws Exception{
-
+		
 		if(container.getExternalCompartment() != null){
-
+			
 			String extcomp = container.getExternalCompartment().getId();
 
 			//PRODUCTS
@@ -1258,12 +1259,19 @@ public class SBMLLevel3Writer {
 			String specieName = specie;
 			if(needsToBeStandardized) specieName = standardizeMetId(specie);
 			compound.setSpecies(specieName);
+			Double stoichValue;
 			if(isProduct){
-				compound.setStoichiometry(ogreaction.getProducts().get(specie).getStoichiometryValue());
+				stoichValue = aux.get(specie).getStoichiometryValue();
+//				if(stoichValue<0)
+//					stoichValue = -stoichValue;
+				compound.setStoichiometry(stoichValue);
 				compound.setConstant(true);
 				sbmlreaction.addProduct(compound);
 			} else{
-				compound.setStoichiometry(ogreaction.getReactants().get(specie).getStoichiometryValue());
+				stoichValue = aux.get(specie).getStoichiometryValue();
+//				if(stoichValue>0)
+//					stoichValue = -stoichValue;
+				compound.setStoichiometry(stoichValue);
 				compound.setConstant(true);
 				sbmlreaction.addReactant(compound);
 			}
