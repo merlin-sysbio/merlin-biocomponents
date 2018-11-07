@@ -297,47 +297,36 @@ public class MerlinImportUtils {
 		
 		for(String idReaction : reactions.keySet()){
 			
-			String reactionID = idReaction;
+			String reactionID = processSBMLReactionID(idReaction);
 			
-			if(idReaction.startsWith("R_"))
-				reactionID = idReaction.substring(2);
-				
-			if(reactionID.contains("_")){
-				
-				reactionID = reactionID.substring(0, reactionID.lastIndexOf("_"));
-				
-				String[] splitedID = reactionID.split("_");
-
-//				String id = "";
-				if(splitedID.length>0) {
-					for(int i=0; i<splitedID.length; i++){
-						
-						if(modelSource.equals(ModelSources.MODEL_SEED)) 
-							if(splitedID[i].matches("rxn\\d{5}"))
-								reactionID = splitedID[i];
-						
-	//					else if(splitedID[i].matches("R\\d{5}"))
-	//						id = splitedID[i];
-	//					
-	//					else
-	//						id.concat("_").concat(splitedID[i]);
-					}
-				}
-			}
-
 			ReactionCI reaction = reactions.get(idReaction);
 			
 			Map <String, StoichiometryValueCI> reactants = reaction.getReactants();
 			Map <String, StoichiometryValueCI> products = reaction.getProducts();
 			
+			if((reactants==null || reactants.isEmpty()) && !this.drains.contains(idReaction))
+				this.drains.add(idReaction);
+			else if((products==null || products.isEmpty()) && !this.drains.contains(idReaction))
+				this.drains.add(idReaction);
+			
 			String compSuffix = "";
 			
-			if(reactants.get(reactants.keySet().iterator().next()).getCompartmentId()!=null 
-					&& !reactants.get(reactants.keySet().iterator().next()).getCompartmentId().isEmpty())
+			if(reactants!=null && !reactants.isEmpty() && reactants.get(reactants.keySet().iterator().next()).getCompartmentId()!=null 
+					&& !reactants.get(reactants.keySet().iterator().next()).getCompartmentId().isEmpty()){
+				
 				compSuffix = compSuffix.concat("_").concat(reactants.get(reactants.keySet().iterator().next()).getCompartmentId());
+			}
 			
-			else if(!reaction.identifyCompartments().isEmpty() && reaction.identifyCompartments()!=null)
+			else if(products!=null && !products.isEmpty() && products.get(products.keySet().iterator().next()).getCompartmentId()!=null 
+					&& !products.get(products.keySet().iterator().next()).getCompartmentId().isEmpty()){
+				
+				compSuffix = compSuffix.concat("_").concat(products.get(products.keySet().iterator().next()).getCompartmentId());
+			}
+			
+			else if(!reaction.identifyCompartments().isEmpty() && reaction.identifyCompartments()!=null){
+				
 				compSuffix = compSuffix.concat("_").concat(reaction.identifyCompartments().toArray()[0].toString());
+			}
 
 			String reactionIDcompartment = reactionID.concat(compSuffix);
 			
@@ -567,7 +556,7 @@ public class MerlinImportUtils {
 				reactionContainer.setPathwaysMap(pathwaysMap);
 			}
 			
-			else if(drains.contains(idReaction)){
+			else if(this.drains.contains(idReaction)){
 				
 				pathways.add("D0001");
 				reactionContainer.setPathways(pathways);
@@ -577,7 +566,7 @@ public class MerlinImportUtils {
 				reactionContainer.setPathwaysMap(pathwaysMap);
 			}
 			
-			else if(transportReactions.contains(idReaction)){
+			else if(this.transportReactions.contains(idReaction)){
 				
 				pathways.add("T0001");
 				reactionContainer.setPathways(pathways);
@@ -760,21 +749,63 @@ public class MerlinImportUtils {
 		
 		String processedMetID = sbmlMetaboliteID;
 		
-		if(processedMetID.matches("^[Mm]_.+"))
+		while(processedMetID.matches("^[Mm]_.+"))
 			processedMetID = processedMetID.replaceAll("^[Mm]_","");
 		
-		String[] metIDSplited = sbmlMetaboliteID.split("_");
-		
-		for(String splitedId : metIDSplited){
-			
-			if(splitedId.matches("cpd\\d{5}"))
-				processedMetID = splitedId;
+		if(processedMetID.contains("_")){
+
+			String[] metIDSplited = processedMetID.split("_");
+
+			for(String splitedId : metIDSplited){
+
+				if(splitedId.matches("cpd\\d{5}"))
+					processedMetID = splitedId;
+			}
+
+			while(processedMetID.matches(".+[^_]_\\w{1}\\d*$"))
+				processedMetID = processedMetID.substring(0, processedMetID.lastIndexOf("_"));	
+
 		}
 		
-		if(processedMetID.matches(".+[^_]_\\w{1,2}$"))
-			processedMetID = processedMetID.substring(0, processedMetID.lastIndexOf("_"));		
-		
 		return processedMetID;
+	}
+	
+	
+	
+		
+
+	
+	/**
+	 * @param sbmlReactionID
+	 * @return
+	 */
+	public static String processSBMLReactionID(String sbmlReactionID) {
+		
+		String processedReactionID = sbmlReactionID;
+		
+		while(processedReactionID.matches("^[Rr]_.+"))
+			processedReactionID = processedReactionID.replaceAll("^[Rr]_","");
+		
+		if(processedReactionID.contains("_")){
+
+			String[] reactionIDSplited = processedReactionID.split("_");
+
+			for(String splitedId : reactionIDSplited){
+
+					if(splitedId.matches("rxn\\d{5}"))
+						processedReactionID = splitedId;
+				
+					else if(splitedId.matches("R\\d{5}"))
+						processedReactionID = splitedId;
+					
+			}
+
+			while(processedReactionID.matches(".+[^_]_\\w{1}\\d*$"))
+				processedReactionID = processedReactionID.substring(0, processedReactionID.lastIndexOf("_"));	
+
+		}
+		
+		return processedReactionID;
 	}
 
 	
