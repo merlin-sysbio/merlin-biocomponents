@@ -255,8 +255,6 @@ public class ContainerBuilder implements IContainerBuilder {
 
 					String locus= list2[2], geneName = null;
 					
-					System.out.println(list2[2]);
-
 					if(list2[1]!=null)
 						geneName = list2[1].replace(" ","").replace(",","_").replace("/","_").replace("\\","_").trim();
 

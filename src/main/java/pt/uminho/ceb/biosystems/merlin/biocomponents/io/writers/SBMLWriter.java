@@ -522,7 +522,6 @@ public class SBMLWriter {
 			}
 		}
 
-		System.out.println("GENES--->"+genes.size());
 	}
 
 	/**

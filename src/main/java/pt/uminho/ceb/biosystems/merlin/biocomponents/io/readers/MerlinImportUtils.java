@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.ModelSourcesEnumerator.ModelSources;
 import pt.uminho.ceb.biosystems.merlin.utilities.RulesParser;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.ModelSeedCompoundsDB;
@@ -50,6 +53,8 @@ public class MerlinImportUtils {
 	private ModelSources modelSource;
 //	private Map<String,Integer> genesIds;
 
+	final static Logger logger = LoggerFactory.getLogger(MerlinImportUtils.class);
+
 
 
 
@@ -74,11 +79,17 @@ public class MerlinImportUtils {
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
 		this.drains = new ArrayList<>();
 		
+		logger.info("Reading compartments...");
 		readCompartments();
+		logger.info("Reading metabolites...");
 		readMetabolites();
+		logger.info("Reading pathways...");
 		readPathways();
+		logger.info("Reading genes...");
 		readGenes();
+		logger.info("Reading enzymes...");
 		readEnzymes();
+		logger.info("Reading reactions...");
 		readReactions();
 		
 	}
@@ -529,7 +540,7 @@ public class MerlinImportUtils {
 
 		Map<String, Set<String>> ecNumbers = cont.getECNumbers();
 		
-		System.out.println(ecNumbers);
+//		System.out.println(ecNumbers);
 
 		for(String ecNumber : ecNumbers.keySet()){
 
