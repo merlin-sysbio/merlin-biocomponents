@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.Enumerators.ModelSources;
 import pt.uminho.ceb.biosystems.merlin.utilities.RulesParser;
 import pt.uminho.ceb.biosystems.merlin.utilities.containers.model.CompartmentContainer;
@@ -55,6 +58,9 @@ public class MerlinImportUtils {
 	private Map<String,Set<String>> reactionEnzymes;
 //	private boolean addSpontaneousReactions;
 	private String biomassReaction;
+	
+	final static Logger logger = LoggerFactory.getLogger(MerlinImportUtils.class);
+
 
 
 //	public MerlinImportUtils(MerlinSBMLContainer sbml3Container, ModelSources source, String level) throws SQLException {
@@ -94,24 +100,21 @@ public class MerlinImportUtils {
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
 		this.drains = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Drain));
 //		this.addSpontaneousReactions = false;
-
 		
-		System.out.println("Reading compartments...");
+		logger.info("Reading compartments...");
 		readCompartments();
-		System.out.println("Reading metabolites...");
+		logger.info("Reading metabolites...");
 		readMetabolites();
-		System.out.println("Reading pathways...");
+		logger.info("Reading pathways...");
 		readPathways();
-		System.out.println("Reading genes...");
+		logger.info("Reading genes...");
 		readGenes();
-		System.out.println("Reading reactions...");
+		logger.info("Reading reactions...");
 		readReactions();
-		System.out.println("Reading enzymes...");
+		logger.info("Reading enzymes...");
 		readEnzymes();
 		
 	}
-	
-	
 	
 	/**
 	 * 
