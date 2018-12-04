@@ -126,6 +126,7 @@ public class ContainerBuilder implements IContainerBuilder {
 		this.compartmentCounter = 1;
 		//		=new HashMap<>();
 		populateInformation(isCompartmentalisedModel);
+		
 	}
 
 
@@ -285,7 +286,7 @@ public class ContainerBuilder implements IContainerBuilder {
 				//							reactionContainer.setGenes(genes);
 				//						}
 			}
-
+			
 			stmt.close();
 		}
 		catch (SQLException e) {
@@ -433,7 +434,7 @@ public class ContainerBuilder implements IContainerBuilder {
 		Map<String,String> compoundCompartmentID = new TreeMap<String, String>();
 
 		Statement stmt = connection.createStatement();
-
+		
 		for(String reaction_id : this.reactions.keySet()) {
 
 			ReactionContainer reaction = this.reactions.get(reaction_id);
@@ -565,11 +566,12 @@ public class ContainerBuilder implements IContainerBuilder {
 
 			//ADD GENES
 			if(reaction.getGenes()!= null)
-				for(Pair<String,String> gene : reaction.getGenes())			
+				for(Pair<String,String> gene : reaction.getGenes())
 					r.addGene(gene.getA());
-
+				
+			
 			String geneRule = null;
-
+			
 			if(reaction.getGeneRule()==null || reaction.getGeneRule().isEmpty())
 				geneRule = RulesParser.processReactionGenes(reaction.getGenes(), concatenate);
 
@@ -609,15 +611,17 @@ public class ContainerBuilder implements IContainerBuilder {
 			//			Set <XMLNode> pa = MerlinDBReader.getPathwaysRules(pathwaysNotes, notesList);
 			//			if(pa!=null)
 			//				r.setSubsystem(pa.toString());
+			
+//			System.out.println(r.getGenesIDs());
 
 			this.reactionsMap.put(r.getId(), r);
-
+			
 			Map<String, String> value = new HashMap<>();
 			value.put("MERLIN_ID", reaction.getEntryID());
 
 			this.reactionsExtraInfo.put(rid, value);
 		}
-
+		
 		stmt.close();
 	}
 

@@ -117,6 +117,7 @@ public class SBMLLevel3Writer {
 		this.overrideConstraints = new HashMap<String, ReactionConstraintCI>();
 		this.path = path;
 		this.container = container;
+		
 		//		System.out.println("\n\n\n\n");
 		//		System.out.println(!container.hasUnicIds());
 		//		System.out.println(container.getMetabolites().keySet());
@@ -656,7 +657,7 @@ public class SBMLLevel3Writer {
 		//		ListOf<GeneProduct> sbml3GeneProducts = new ListOf<GeneProduct>(levelAndVersion.getLevel(), levelAndVersion.getVersion());
 
 		FBCModelPlugin fbcModel = (FBCModelPlugin) model.getPlugin("fbc");
-
+		
 		for(GeneCI gene : container.getGenes().values()){
 			
 			String geneProductID = standardGeneID(gene.getGeneId());
