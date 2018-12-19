@@ -1,14 +1,23 @@
 package pt.uminho.ceb.biosystems.merlin.biocomponents.io.readers;
 
+import java.io.File;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.biojava.nbio.core.sequence.DNASequence;
+import org.biojava.nbio.core.sequence.compound.NucleotideCompound;
+import org.biojava.nbio.core.sequence.features.FeatureInterface;
+import org.biojava.nbio.core.sequence.features.Qualifier;
+import org.biojava.nbio.core.sequence.io.GenbankReaderHelper;
+import org.biojava.nbio.core.sequence.template.AbstractSequence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +68,9 @@ public class MerlinImportUtils {
 //	private boolean addSpontaneousReactions;
 	private String biomassReaction;
 	
+	private Map<String, String> locusTagsToProteinIdsMap;
+
+	
 	final static Logger logger = LoggerFactory.getLogger(MerlinImportUtils.class);
 
 
@@ -100,6 +112,8 @@ public class MerlinImportUtils {
 		this.transportReactions = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Transport));
 		this.drains = new ArrayList<>(cont.getReactionsByType(ReactionTypeEnum.Drain));
 //		this.addSpontaneousReactions = false;
+		
+		this.locusTagsToProteinIdsMap = new HashMap<>();
 		
 		logger.info("Reading compartments...");
 		readCompartments();
@@ -729,6 +743,69 @@ public class MerlinImportUtils {
 	
 	
 	/**
+	 * @return
+	 * @throws Exception 
+	 */
+	public Map<String,String> createProteinIdLocusTagMap(Statement stmt, File genBankFile) throws Exception{
+
+		List<String> idsToSearch = new ArrayList<>(this.cont.getGenes().keySet()); 
+
+		Map<String, String> proteinIds = getProteiIdFromGenBankFastFile(genBankFile);
+
+		for(String locusTag : idsToSearch){
+
+			if(proteinIds.containsKey(locusTag))
+				this.locusTagsToProteinIdsMap.put(locusTag, proteinIds.get(locusTag));
+
+		}
+
+		return this.locusTagsToProteinIdsMap;
+	}
+
+
+	/**
+	 * @param genBankFile
+	 * @return
+	 * @throws Exception
+	 */
+	private static Map<String, String> getProteiIdFromGenBankFastFile(File genBankFile) throws Exception {
+
+		Map<String, String> proteinIDs = new HashMap<>();
+
+		try {
+			LinkedHashMap<String, DNASequence> genBankReader = GenbankReaderHelper.readGenbankDNASequence(genBankFile);
+
+			for(DNASequence cds : genBankReader.values()) {
+				for (FeatureInterface<AbstractSequence<NucleotideCompound>, NucleotideCompound> cdsFeature : cds.getFeatures()) {
+					if (cdsFeature.getType().equals("CDS")){   
+						Map<String, List<Qualifier>> qualifiers = cdsFeature.getQualifiers();
+						List<Qualifier> old_locus_tag = qualifiers.get("old_locus_tag");
+						List<Qualifier> locus_tag = qualifiers.get("locus_tag");
+						List<Qualifier> protein_id = qualifiers.get("protein_id");
+
+						if(protein_id!=null){
+
+							if(locus_tag != null)
+								proteinIDs.put(locus_tag.get(0).getValue(), protein_id.get(0).getValue());
+
+							if(old_locus_tag != null)
+								proteinIDs.put(old_locus_tag.get(0).getValue(), protein_id.get(0).getValue());
+
+						}
+					}
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+
+		return proteinIDs;
+	}
+
+	
+	/**
 	 * @param sbmlMetaboliteID
 	 * @return
 	 */
@@ -860,6 +937,20 @@ public class MerlinImportUtils {
 	 */
 	public String getBiomassReaction() {
 		return biomassReaction;
+	}
+
+	/**
+	 * @return the locusTagsToProteinIdsMap
+	 */
+	public Map<String, String> getLocusTagsToProteinIdsMap() {
+		return locusTagsToProteinIdsMap;
+	}
+
+	/**
+	 * @param locusTagsToProteinIdsMap the locusTagsToProteinIdsMap to set
+	 */
+	public void setLocusTagsToProteinIdsMap(Map<String, String> locusTagsToProteinIdsMap) {
+		this.locusTagsToProteinIdsMap = locusTagsToProteinIdsMap;
 	}
 
 }

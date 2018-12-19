@@ -584,7 +584,6 @@ public class ContainerBuilder implements IContainerBuilder {
 //			String gRule = ContainerBuilder.getSimpleGeneRule(ContainerBuilder.processReactionGenes(reaction.getGenes()), reaction.getGeneRule());
 			//			String gRule = MerlinDBReader.getSimpleGeneRule_SBML2(MerlinDBReader.processReactionGenes(reaction.getGenes()), MerlinDBReader.processReactionNotes(reaction.getNotes()));
 			
-			
 			if(geneRule!= null && !geneRule.isEmpty())
 				r.setGeneRule(geneRule);
 

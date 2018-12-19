@@ -52,6 +52,7 @@ import org.sbml.jsbml.text.parser.ParseException;
 import org.sbml.jsbml.validator.SyntaxChecker;
 import org.sbml.jsbml.xml.XMLNode;
 import org.sbml.jsbml.xml.parsers.MathMLStaxParser;
+import org.slf4j.LoggerFactory;
 
 import pt.uminho.ceb.biosystems.merlin.biocomponents.io.Enumerators.SBMLLevelVersion;
 import pt.uminho.ceb.biosystems.merlin.utilities.Utilities;
@@ -108,6 +109,9 @@ public class SBMLLevel3Writer {
 
 	public static String CELLDESIGNER_NAMESPACE_PREFIX = "celldesigner";
 	public static String CELLDESIGNER_NAMESPACE_URI = "http://www.sbml.org/2001/ns/celldesigner";
+	
+	final static org.slf4j.Logger logger = LoggerFactory.getLogger(SBMLLevel3Writer.class);
+
 
 	//	private XMLNamespaces spaces;
 
@@ -262,20 +266,20 @@ public class SBMLLevel3Writer {
 
 		/** load all the compartments */
 		loadCompartments(model);
-
+		
 		/** load all model groups (pathways in this case) */
 		loadGroups(model);
-
+		
 		/** load all species */		
 		loadSpecies(model);
-
+		
 		/** load all genes */		
 		loadGeneProducts(model);
 
 		/**  load the drains and define new metabolites for each one of them  */
 		if(isPalssonSpecific())
 			loadDrains(model);
-
+		
 		/** load all the reactions */
 		loadReactions(model, unit_def);
 
@@ -293,16 +297,19 @@ public class SBMLLevel3Writer {
 		//		spaces.add("http://www.w3.org/1998/Math/MathML");
 		////		document.addDeclaredNamespace(prefix, namespace);
 		//		document.addNamespace("html", "xmlns", "http://www.w3.org/1999/xhtml");
-
+		
 		document.setModel(model);
 		writeNotes(document, model);
 		
 		this.sbmlDocument=document;
+		
+		int errorsWarnings = document.checkConsistency();
 
-		System.out.println("SBML VALIDATION ERRORS/WARNINGS: "+document.checkConsistency());
-		if(document.checkConsistency()>0){
+		logger.info("SBML VALIDATION ERRORS/WARNINGS: "+errorsWarnings);
+		
+		if(errorsWarnings>0){
 			for(SBMLError sbmlError : document.getListOfErrors().getValidationErrors())
-				System.out.println(sbmlError.getMessage());
+				logger.error(sbmlError.getMessage());
 		}
 
 		SBMLWriter writer = new SBMLWriter();
@@ -325,7 +332,6 @@ public class SBMLLevel3Writer {
 	public void toSBML(String outputFile) throws Exception{
 		Model model = createModel();
 		saveToFile(model, outputFile);
-
 	}
 
 	/**
@@ -634,7 +640,7 @@ public class SBMLLevel3Writer {
 
 		if(validateKeggID(speciesKeggID, true)) {
 
-			Annotation annotation = writeAnnotation(speciesKeggID, ExternalRefSource.KEGG_CPD);
+			Annotation annotation = writeAnnotation(speciesKeggID, Qualifier.BQB_IS, ExternalRefSource.KEGG_CPD);
 			sbmlSpecies.setAnnotation(annotation);
 		}
 
@@ -728,7 +734,7 @@ public class SBMLLevel3Writer {
 	public void writeGeneProductsAnnotations(GeneCI gene, GeneProduct sbmlGene){
 
 		Map<Qualifier, Map<ExternalRefSource, List<String>>> annotationData = new HashMap<>();
-		Qualifier[] qualifiers = new Qualifier[] {Qualifier.BQB_IS, Qualifier.BQB_IS_ENCODED_BY};
+		Qualifier[] qualifiers = new Qualifier[] {Qualifier.BQB_IS, Qualifier.BQB_ENCODES};//, Qualifier.BQB_IS_ENCODED_BY};
 		Set<String> reactions = gene.getReactionIds();
 		List<String> reactionKeggIds = new ArrayList<>();
 		List<String> geneEcNumbers = new ArrayList<>();
@@ -751,14 +757,16 @@ public class SBMLLevel3Writer {
 
 			Map<ExternalRefSource,List<String>> resources = new HashMap<>();
 
-			if(qualifier.equals(Qualifier.BQB_IS))
-				resources.put(ExternalRefSource.EC_Code, geneEcNumbers);
-
-			else {
+			if(qualifier.equals(Qualifier.BQB_IS)){
 				List<String> ncbiID = new ArrayList<>();
 				ncbiID.add(standardGeneID(gene.getGeneId()).substring(2));
-				resources.put(ExternalRefSource.NCBI_GENE, ncbiID);
+				resources.put(ExternalRefSource.NCBI_PROTEIN, ncbiID);
+			}
+
+			else if (qualifier.equals(Qualifier.BQB_ENCODES)){
 				resources.put(ExternalRefSource.KEGG_REACTION, reactionKeggIds);
+//				resources.put(ExternalRefSource.EC_Code, geneEcNumbers);
+
 			}
 			annotationData.put(qualifier, resources);
 		}
@@ -841,7 +849,7 @@ public class SBMLLevel3Writer {
 //		listParameters.add(2, defaultUB);
 
 		//		Map<String,Map<String,String>> reactionsExtraInfo = container.getReactionsExtraInfo();
-
+		
 		for(String rId : container.getReactions().keySet()){
 			ReactionCI ogreaction = container.getReactions().get(rId);
 
@@ -903,12 +911,33 @@ public class SBMLLevel3Writer {
 	public void writeReactionAnnotations(ReactionCI ogreaction, Reaction sbmlReaction){
 
 		String keggID = ogreaction.getName().split("_")[0];
+		
+		Map<Qualifier, Map<ExternalRefSource,List<String>>> annotationData = new HashMap<>();
+		Map<ExternalRefSource,List<String>> annotationElement = new HashMap<>();
 
 		if(validateKeggID(keggID, false)) {
-
-			Annotation annotation = writeAnnotation(keggID, ExternalRefSource.KEGG_REACTION);
-			sbmlReaction.setAnnotation(annotation);
+			
+			List<String> keggIDs = new ArrayList<>();
+			keggIDs.add(keggID);
+			annotationElement.put(ExternalRefSource.KEGG_REACTION, keggIDs);
+			
+			annotationData.put(Qualifier.BQB_IS, annotationElement);
 		}
+		
+		String ecNumbersString = ogreaction.getEc_number();
+		
+		if(ecNumbersString.length()>0){
+			
+			annotationElement = new HashMap<>();
+
+			String[] ecNumbers = ecNumbersString.substring(1, ecNumbersString.length()-1).split(",");
+				
+			annotationElement.put(ExternalRefSource.EC_Code, Arrays.asList(ecNumbers));
+			annotationData.put(Qualifier.BQB_IS_RELATED_TO, annotationElement);
+		}
+		
+		sbmlReaction.setAnnotation(writeAnnotations(annotationData));
+		
 
 		//		XMLNode rdfNode = null ;
 
@@ -1052,7 +1081,7 @@ public class SBMLLevel3Writer {
 	 * @param externalSource
 	 * @return
 	 */
-	public Annotation writeAnnotation(String sourceID, ExternalRefSource externalSource){
+	public Annotation writeAnnotation(String sourceID, Qualifier qualifier, ExternalRefSource externalSource){
 
 		Annotation annotation = new Annotation();
 
@@ -1060,7 +1089,7 @@ public class SBMLLevel3Writer {
 
 		String resource = referenceSource.getExternalRefSource().getIdentifierCode(sourceID);
 
-		CVTerm bqmodel = new CVTerm(Qualifier.BQB_IS, resource);
+		CVTerm bqmodel = new CVTerm(qualifier, resource);
 		annotation.addCVTerm(bqmodel);
 
 		return annotation;
