@@ -24,13 +24,6 @@
 		<pt.uminho.ceb.biosystems.merlin.groupId>pt.uminho.ceb.biosystems.merlin</pt.uminho.ceb.biosystems.merlin.groupId>
 	</properties>
 
-	<!-- <build> <sourceDirectory>D:\workspaces\maven\biocomponents\src</sourceDirectory> 
-		<scriptSourceDirectory>D:\workspaces\maven\biocomponents\src\main\scripts</scriptSourceDirectory> 
-		<testSourceDirectory>D:\workspaces\maven\biocomponents\test</testSourceDirectory> 
-		<outputDirectory>D:\workspaces\maven\biocomponents\bin\</outputDirectory> 
-		<testOutputDirectory>D:\workspaces\maven\biocomponents\test-bin</testOutputDirectory> 
-		</build> -->
-
 	<repositories>
 		<repository>
 			<id>ebi-repo</id>
@@ -46,7 +39,6 @@
 		<repository>
 			<id>nexus</id>
 			<name>Nexus BioSystems Server</name>
-			<!-- <url>http://193.137.11.210/nexus/content/groups/public/</url> -->
 			<url>https://www.bio.di.uminho.pt/nexus/content/groups/public/</url>
 		</repository>
 	</repositories>
@@ -195,13 +187,11 @@
 	<distributionManagement>
 		<snapshotRepository>
 			<id>biosystems-snapshots</id>
-			<!-- <url>http://192.168.1.99/nexus/content/repositories/biosystems-snapshots</url> -->
-			<url>http://193.137.11.210/nexus/content/repositories/biosystems-snapshots</url>
+			<url>https://nexus.bio.di.uminho.pt/content/repositories/biosystems-snapshots</url>
 		</snapshotRepository>
 		<repository>
 			<id>biosystems-releases</id>
-			<!-- <url>http://192.168.1.99/nexus/content/repositories/biosystems-releases</url> -->
-			<url>http://193.137.11.210/nexus/content/repositories/biosystems-releases</url>
+			<url>https://nexus.bio.di.uminho.pt/content/repositories/biosystems-releases</url>
 		</repository>
 	</distributionManagement>
 </project>
