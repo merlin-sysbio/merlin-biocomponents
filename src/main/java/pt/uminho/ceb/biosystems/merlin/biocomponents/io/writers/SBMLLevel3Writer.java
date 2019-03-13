@@ -459,8 +459,10 @@ public class SBMLLevel3Writer {
 		FBCModelPlugin sbml3Objectives = (FBCModelPlugin) model.getPlugin("fbc");
 
 		ReactionCI biomassReaction = container.getReaction(container.getBiomassId());
-		String[] biomassName = biomassReaction.getName().split("__");
-		String reactionID = standardizerReactId(biomassName[biomassName.length-1],biomassReaction.getType());
+//		String[] biomassName = biomassReaction.getName().split("__");
+//		String reactionID = standardizerReactId(biomassName[biomassName.length-1],biomassReaction.getType());
+		
+		String reactionID = standardizerReactId(biomassReaction.getId(),biomassReaction.getType());
 
 		Objective biomassObjective = new Objective("biomass");
 		biomassObjective.setType(Type.MAXIMIZE);
@@ -545,8 +547,9 @@ public class SBMLLevel3Writer {
 			group.setName(pathway);
 
 			for(ReactionCI reaction : pathwaysReactionsMap.get(pathway)){
-				String[] reactionName = reaction.getName().split("__");
-				String reactionID = standardizerReactId(reactionName[reactionName.length-1],reaction.getType());
+//				String[] reactionName = reaction.getName().split("__");
+//				String reactionID = standardizerReactId(reactionName[reactionName.length-1],reaction.getType());
+				String reactionID = standardizerReactId(reaction.getId(),reaction.getType());
 				Member member = new Member();
 				member.setIdRef(reactionID);
 				group.addMember(member);
@@ -854,12 +857,13 @@ public class SBMLLevel3Writer {
 			ReactionCI ogreaction = container.getReactions().get(rId);
 
 			//			String reactionID = standardizerReactId(ogreaction.getId(), ogreaction.getType());
-			String[] reactionName = ogreaction.getName().split("__");
-			String reactionID = standardizerReactId(reactionName[reactionName.length-1],ogreaction.getType());
+//			String[] reactionName = ogreaction.getName().split("__");
+//			String reactionID = standardizerReactId(reactionName[reactionName.length-1],ogreaction.getType());
+			String reactionID = standardizerReactId(ogreaction.getId(),ogreaction.getType());
 			Reaction sbmlReaction = new Reaction(levelAndVersion.getLevel(), levelAndVersion.getVersion());
-
 			sbmlReaction.setId(reactionID);
-			sbmlReaction.setName(ogreaction.getName().substring(0, ogreaction.getName().lastIndexOf("__")));
+//			sbmlReaction.setName(ogreaction.getName().substring(0, ogreaction.getName().lastIndexOf("__")));
+			sbmlReaction.setName(ogreaction.getName());
 			sbmlReaction.setReversible(ogreaction.isReversible());
 			//			String[] splitName = ogreaction.getName().split("__");
 			//			sbmlReaction.setMetaId(standardizerReactMetaID(reactionsExtraInfo.get(reactionName).get("MERLIN_ID")));

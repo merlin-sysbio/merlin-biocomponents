@@ -418,6 +418,23 @@ public class ContainerBuilder implements IContainerBuilder {
 
 		return type.concat("_"+counter);
 	}
+	
+	/**
+	 * @param prefix
+	 * @param identifier
+	 * @param compartment
+	 * @return
+	 */
+	private static String buildID(String prefix, String identifier, String compartment) {
+
+		String output = identifier.concat("_").concat(compartment.toLowerCase());
+		
+		if(!output.startsWith(prefix))
+			output = prefix.concat(output);
+		
+		output = output.replace("-", "_").replace(":", "_").replace(" ", "_").replace("\t", "_").replace(".", "_").replace("+", "_");
+		return output;
+	}
 
 
 	/**
@@ -428,8 +445,8 @@ public class ContainerBuilder implements IContainerBuilder {
 	 */
 	private void buildModel() throws InvalidBooleanRuleException, NumberFormatException, SQLException {
 
-		int reactionsCounter = 1 ;
-		int metabolitesCounter = 1;
+//		int reactionsCounter = 1 ;
+//		int metabolitesCounter = 1;
 
 		Map<String,String> compoundCompartmentID = new TreeMap<String, String>();
 
@@ -439,17 +456,11 @@ public class ContainerBuilder implements IContainerBuilder {
 
 			ReactionContainer reaction = this.reactions.get(reaction_id);
 			
-			Integer id = Integer.parseInt(reaction_id);
-			String newID = String.format("%06d", id);
+//			Integer id = Integer.parseInt(reaction_id);
+//			String newID = String.format("%06d", id);
 			
-			String name = reaction.getName()+"__("+reaction.getEquation().replace(" ", "")+")"+"__"+newID;
-
-			String rid = ContainerBuilder.buildID("R_", reactionsCounter)/*+"_"+reaction.getName().replace(" ", "_").replace("\t", "_").replace("-", "_")*/;
-			//			String rid = reaction_id;
-			reactionsCounter++ ;
-
-			if(this.biomassName!=null && this.biomassName.equalsIgnoreCase(reaction.getName()))
-				this.biomassID = rid;
+//			String name = reaction.getName()+"__("+reaction.getEquation().replace(" ", "")+")"+"__"+newID;
+	
 
 			Map<String, StoichiometryValueCI> reactants = new HashMap<String, StoichiometryValueCI>();
 			Map<String, StoichiometryValueCI> products = new HashMap<String, StoichiometryValueCI>();
@@ -467,9 +478,10 @@ public class ContainerBuilder implements IContainerBuilder {
 					}
 					else {
 
-						mid = ContainerBuilder.buildID("M_", metabolitesCounter);
-						//						mid = Integer.toString(metabolite.getMetaboliteID());
-						metabolitesCounter++ ;
+						String compartmentAbb = this.compartments.get(metabolite.getCompartment_name()).getAbbreviation();
+						mid = ContainerBuilder.buildID("M_", metabolite.getEntryID(), compartmentAbb);
+						//mid = Integer.toString(metabolite.getMetaboliteID());
+						//metabolitesCounter++ ;
 						compoundCompartmentID.put(metabolite_surrogate,mid);
 
 						if(this.compoundsMap.containsKey(mid)) {
@@ -550,10 +562,29 @@ public class ContainerBuilder implements IContainerBuilder {
 
 			if(reaction.getUpperBound()!= null)
 				upper_bound = reaction.getUpperBound();
+			
+			
+			String equation = reaction.getEquation().replace(" ", "");
+			String compartmentAbb = this.compartments.get(reaction.getLocalisation()).getAbbreviation();
+			String name = reaction.getName();
+			if(reactants.isEmpty() || products.isEmpty()) {
+				
+				name=name.substring(0, name.indexOf("_", 5));
+				System.out.println(name);
+			}
+				
+			String rid = ContainerBuilder.buildID("R_", name, compartmentAbb)/*+"_"+reaction.getName().replace(" ", "_").replace("\t", "_").replace("-", "_")*/;
+			//			String rid = reaction_id;
+//			reactionsCounter++ ;
+
+			if(this.biomassName!=null && this.biomassName.equalsIgnoreCase(reaction.getName()))
+				this.biomassID = rid;
+			
+			
 
 			this.defaultEC.put(rid, new ReactionConstraintCI(lower_bound, upper_bound));
 
-			ReactionCI r = new ReactionCI(rid, name, reaction.isReversible(), reactants, products);
+			ReactionCI r = new ReactionCI(rid, equation, reaction.isReversible(), reactants, products);
 			if(this.reactions.get(reaction_id).getEnzymes()!=null)
 				r.setEc_number(this.reactions.get(reaction_id).getEnzymes().toString());
 
