@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.commons.lang3.StringUtils;
 import org.sbml.jsbml.xml.XMLNode;
 import org.sbml.jsbml.xml.XMLTriple;
 import org.slf4j.Logger;
@@ -567,10 +568,10 @@ public class ContainerBuilder implements IContainerBuilder {
 			String equation = reaction.getEquation().replace(" ", "");
 			String compartmentAbb = this.compartments.get(reaction.getLocalisation()).getAbbreviation();
 			String name = reaction.getName();
-			if(reactants.isEmpty() || products.isEmpty()) {
+			if((reactants.isEmpty() || products.isEmpty()) && StringUtils.countMatches(name,"_")>2) {
 				
-				name=name.substring(0, name.indexOf("_", 5));
-				System.out.println(name);
+				if(name.contains("R_EX_"))					
+					name=name.substring(0, name.indexOf("_", 5));
 			}
 				
 			String rid = ContainerBuilder.buildID("R_", name, compartmentAbb)/*+"_"+reaction.getName().replace(" ", "_").replace("\t", "_").replace("-", "_")*/;
